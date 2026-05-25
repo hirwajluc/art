@@ -1,0 +1,29 @@
+# Uploaded artwork files - keep folder structure but ignore contents
+uploads/*
+!uploads/.gitkeep
+
+# Cache files
+cache/
+
+# Log files
+logs/
+
+# PHP error logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / secrets (if added later)
+.env
+.env.local
+
+# Composer (if added later)
+vendor/

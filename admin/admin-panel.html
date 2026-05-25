@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GREATER Art Competition - Admin Panel</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1E90FF;
+            --secondary: #FFD700;
+            --accent: #00BFFF;
+            --success: #32CD32;
+            --warning: #FFA500;
+            --danger: #FF6347;
+            --dark: #2C3E50;
+            --light: #F8F9FA;
+            --gray: #6C757D;
+            --white: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            line-height: 1.6;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            text-align: center;
+            padding: 0 20px 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--secondary);
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 15px 25px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255,255,255,0.1);
+            border-left-color: var(--secondary);
+            transform: translateX(5px);
+        }
+
+        .nav-link i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 30px;
+        }
+
+        .top-bar {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 28px;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Dashboard Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .stat-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 16px;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 30px;
+            opacity: 0.3;
+            color: var(--primary);
+        }
+
+        /* Charts */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Tables */
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .table-header {
+            background: var(--primary);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+            min-width: 250px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table th {
+            background-color: var(--light);
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .pagination a,
+        .pagination span {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-decoration: none;
+            color: var(--gray);
+        }
+
+        .pagination .current {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .pagination a:hover {
+            background: var(--light);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(30, 144, 255, 0.2);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h1>GREATER</h1>
+                <p>Art Competition Admin</p>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="?page=dashboard" class="nav-link active" id="dashboard-link">
+                        <i class="fas fa-chart-pie"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="?page=registrations" class="nav-link" id="registrations-link">
+                        <i class="fas fa-users"></i>
+                        Registrations
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="?page=submissions" class="nav-link" id="submissions-link">
+                        <i class="fas fa-images"></i>
+                        Submissions
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-trophy"></i>
+                        Winners
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-download"></i>
+                        Export Data
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <h1 class="page-title" id="page-title">Dashboard</h1>
+                <div class="user-info">
+                    <span>Welcome, Admin</span>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div id="dashboard-content">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-number" id="total-registrations">47</div>
+                        <div class="stat-label">Total Registrations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <div class="stat-number" id="total-submissions">9</div>
+                        <div class="stat-label">Total Submissions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-number" id="pending-submissions">9</div>
+                        <div class="stat-label">Pending Review</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-number" id="approved-submissions">0</div>
+                        <div class="stat-label">Approved</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Registrations by Category</h3>
+                        <canvas id="registrationChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Submissions by Country</h3>
+                        <canvas id="countryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">Recent Submissions</h3>
+                        <a href="?page=submissions" class="btn btn-primary">
+                            <i class="fas fa-eye"></i>
+                            View All
+                        </a>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User Code</th>
+                                <th>Participant</th>
+                                <th>Artwork</th>
+                                <th>Category</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-submissions">
+                            <tr>
+                                <td>GAC6223</td>
+                                <td>Ishimwe Gad</td>
+                                <td>Sun-Powered Harvest</td>
+                                <td>Photography</td>
+                                <td>2025-07-03</td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                                <td>
+                                    <a href="?page=submission_detail&id=9" class="btn btn-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>GAC4005</td>
+                                <td>MUGWANEZA Egide</td>
+                                <td>BRIQUETTE PRODUCTION</td>
+                                <td>Video</td>
+                                <td>2025-07-03</td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                                <td>
+                                    <a href="?page=submission_detail&id=8" class="btn btn-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>GAC2030</td>
+                                <td>Kelly Merci IRUMVA</td>
+                                <td>Girl studying</td>
+                                <td>Photography</td>
+                                <td>2025-07-01</td>
+                                <td><span class="status-badge status-pending">Pending</span></td>
+                                <td>
+                                    <a href="?page=submission_detail&id=7" class="btn btn-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Registrations Content -->
+            <div id="registrations-content" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">All Registrations</h3>
+                        <div class="search-box">
+                            <input type="text" class="search-input" placeholder="Search registrations..." id="registration-search">
+                            <button class="btn btn-primary" onclick="searchRegistrations()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User Code</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Category</th>
+                                <th>Nationality</th>
+                                <th>Registration Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registrations-table">
+                            <!-- Registration data will be loaded here -->
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="registrations-pagination">
+                        <!-- Pagination will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submissions Content -->
+            <div id="submissions-content" style="display: none;">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="table-title">All Submissions</h3>
+                        <div class="search-box">
+                            <select class="form-select" id="status-filter" onchange="filterSubmissions()">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                            <input type="text" class="search-input" placeholder="Search submissions..." id="submission-search">
+                            <button class="btn btn-primary" onclick="searchSubmissions()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>User Code</th>
+                                <th>Participant</th>
+                                <th>Artwork Title</th>
+                                <th>Category</th>
+                                <th>File Size</th>
+                                <th>Submission Date</th>
+                                <th>Status</th>
+                                <th>Score</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="submissions-table">
+                            <!-- Submission data will be loaded here -->
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="submissions-pagination">
+                        <!-- Pagination will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Review Modal -->
+    <div class="modal" id="reviewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Review Submission</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="reviewForm">
+                <input type="hidden" id="submissionId" name="id">
+                
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status" required>
+                        <option value="">Select Status</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Score (0-100)</label>
+                    <input type="number" class="form-input" name="score" min="0" max="100" step="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Feedback</label>
+                    <textarea class="form-textarea" name="feedback" placeholder="Enter your feedback..."></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        // Sample data - replace with actual PHP data
+        const dashboardData = {
+            registrations: {
+                photography_paint: 33,
+                short_video: 14
+            },
+            submissions: {
+                photography_paint: 6,
+                short_video: 3
+            },
+            countries: {
+                Rwanda: 42,
+                Sudan: 2,
+                Malaysia: 1,
+                'South Sudan': 1,
+                'Other': 1
+            },
+            recentRegistrations: [
+                { date: '2025-07-01', count: 3 },
+                { date: '2025-06-30', count: 1 },
+                { date: '2025-06-26', count: 1 },
+                { date: '2025-06-21', count: 1 },
+                { date: '2025-06-20', count: 3 },
+                { date: '2025-06-19', count: 8 },
+                { date: '2025-06-18', count: 2 }
+            ]
+        };
+
+        // Sample registrations data
+        const registrationsData = [
+            {
+                userCode: 'GAC7432',
+                fullName: 'KANYARUKIGA Shema G Simeon',
+                email: 'shemagaspard@gmail.com',
+                category: 'photography_paint',
+                nationality: 'Rwandan',
+                registrationDate: '2025-06-30'
+            },
+            {
+                userCode: 'GAC2030',
+                fullName: 'Kelly Merci IRUMVA',
+                email: 'kellymerci1000@gmail.com',
+                category: 'photography_paint',
+                nationality: 'RW',
+                registrationDate: '2025-06-26'
+            },
+            {
+                userCode: 'GAC8526',
+                fullName: 'MUHAWENAYO Jean De La croix',
+                email: 'mujado2001@gmail.com',
+                category: 'photography_paint',
+                nationality: 'Rwanda',
+                registrationDate: '2025-06-21'
+            }
+        ];
+
+        // Sample submissions data
+        const submissionsData = [
+            {
+                id: 9,
+                userCode: 'GAC6223',
+                userName: 'Ishimwe Gad',
+                artworkName: 'Sun-Powered Harvest',
+                category: 'photography_paint',
+                fileSize: 21193021,
+                submissionDate: '2025-07-03',
+                status: 'pending',
+                score: null
+            },
+            {
+                id: 8,
+                userCode: 'GAC4005',
+                userName: 'MUGWANEZA Egide',
+                artworkName: 'BRIQUETTE PRODUCTION',
+                category: 'short_video',
+                fileSize: 105884392,
+                submissionDate: '2025-07-03',
+                status: 'pending',
+                score: null
+            },
+            {
+                id: 7,
+                userCode: 'GAC2030',
+                userName: 'Kelly Merci IRUMVA',
+                artworkName: 'Girl studying',
+                category: 'photography_paint',
+                fileSize: 48307827,
+                submissionDate: '2025-07-01',
+                status: 'pending',
+                score: null
+            }
+        ];
+
+        // Navigation
+        function showPage(page) {
+            // Hide all content
+            document.getElementById('dashboard-content').style.display = 'none';
+            document.getElementById('registrations-content').style.display = 'none';
+            document.getElementById('submissions-content').style.display = 'none';
+            
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected content and update active nav
+            switch(page) {
+                case 'dashboard':
+                    document.getElementById('dashboard-content').style.display = 'block';
+                    document.getElementById('dashboard-link').classList.add('active');
+                    document.getElementById('page-title').textContent = 'Dashboard';
+                    initCharts();
+                    break;
+                case 'registrations':
+                    document.getElementById('registrations-content').style.display = 'block';
+                    document.getElementById('registrations-link').classList.add('active');
+                    document.getElementById('page-title').textContent = 'Registrations';
+                    loadRegistrations();
+                    break;
+                case 'submissions':
+                    document.getElementById('submissions-content').style.display = 'block';
+                    document.getElementById('submissions-link').classList.add('active');
+                    document.getElementById('page-title').textContent = 'Submissions';
+                    loadSubmissions();
+                    break;
+            }
+        }
+
+        // Initialize charts
+        function initCharts() {
+            // Registration by category chart
+            const regCtx = document.getElementById('registrationChart').getContext('2d');
+            new Chart(regCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Photography/Painting', 'Short Video'],
+                    datasets: [{
+                        data: [dashboardData.registrations.photography_paint, dashboardData.registrations.short_video],
+                        backgroundColor: ['#1E90FF', '#FFD700'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Country distribution chart
+            const countryCtx = document.getElementById('countryChart').getContext('2d');
+            new Chart(countryCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(dashboardData.countries),
+                    datasets: [{
+                        label: 'Registrations',
+                        data: Object.values(dashboardData.countries),
+                        backgroundColor: '#00BFFF',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load registrations
+        function loadRegistrations() {
+            const tbody = document.getElementById('registrations-table');
+            tbody.innerHTML = '';
+            
+            registrationsData.forEach(reg => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${reg.userCode}</td>
+                    <td>${reg.fullName}</td>
+                    <td>${reg.email}</td>
+                    <td>${reg.category === 'photography_paint' ? 'Photography/Painting' : 'Short Video'}</td>
+                    <td>${reg.nationality}</td>
+                    <td>${reg.registrationDate}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="viewRegistrationDetail('${reg.userCode}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Load submissions
+        function loadSubmissions() {
+            const tbody = document.getElementById('submissions-table');
+            tbody.innerHTML = '';
+            
+            submissionsData.forEach(sub => {
+                const row = document.createElement('tr');
+                const statusClass = `status-${sub.status}`;
+                const fileSize = formatFileSize(sub.fileSize);
+                
+                row.innerHTML = `
+                    <td>${sub.userCode}</td>
+                    <td>${sub.userName}</td>
+                    <td>${sub.artworkName}</td>
+                    <td>${sub.category === 'photography_paint' ? 'Photography' : 'Video'}</td>
+                    <td>${fileSize}</td>
+                    <td>${sub.submissionDate}</td>
+                    <td><span class="status-badge ${statusClass}">${sub.status}</span></td>
+                    <td>${sub.score || '-'}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="viewSubmissionDetail(${sub.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-warning" onclick="openReviewModal(${sub.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function searchRegistrations() {
+            const searchTerm = document.getElementById('registration-search').value;
+            // Implement search functionality
+            console.log('Searching registrations:', searchTerm);
+        }
+
+        function searchSubmissions() {
+            const searchTerm = document.getElementById('submission-search').value;
+            // Implement search functionality
+            console.log('Searching submissions:', searchTerm);
+        }
+
+        function filterSubmissions() {
+            const status = document.getElementById('status-filter').value;
+            // Implement filter functionality
+            console.log('Filtering by status:', status);
+        }
+
+        function viewRegistrationDetail(userCode) {
+            // Navigate to registration detail page
+            window.location.href = `?page=registration_detail&code=${userCode}`;
+        }
+
+        function viewSubmissionDetail(id) {
+            // Navigate to submission detail page
+            window.location.href = `?page=submission_detail&id=${id}`;
+        }
+
+        function openReviewModal(submissionId) {
+            document.getElementById('submissionId').value = submissionId;
+            document.getElementById('reviewModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('reviewModal').style.display = 'none';
+        }
+
+        // Handle review form submission
+        document.getElementById('reviewForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Submit via AJAX or form submission
+            fetch('?page=update_submission', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Review submitted successfully!');
+                    closeModal();
+                    loadSubmissions(); // Reload submissions
+                } else {
+                    alert('Error submitting review');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting review');
+            });
+        });
+
+        // Event listeners for navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check URL parameter for page
+            const urlParams = new URLSearchParams(window.location.search);
+            const page = urlParams.get('page') || 'dashboard';
+            showPage(page);
+            
+            // Add click handlers to nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const href = this.getAttribute('href');
+                    if (href && href.includes('page=')) {
+                        const page = href.split('page=')[1];
+                        showPage(page);
+                        // Update URL without page reload
+                        window.history.pushState({}, '', href);
+                    }
+                });
+            });
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(e) {
+            const modal = document.getElementById('reviewModal');
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Decimal to Swapped Hex Converter</title>
+</head>
+<body>
+
+<label for="decimalInput">Decimal:</label>
+<input id="decimalInput" type="text" oninput="convertToSwappedHex()" placeholder="Enter decimal number" />
+
+<label for="hexOutput">Hex (swapped):</label>
+<input id="hexOutput" type="text" readonly />
+
+<script>
+function convertToSwappedHex() {
+  const decimalStr = document.getElementById('decimalInput').value.trim();
+
+  if(decimalStr === '') {
+    document.getElementById('hexOutput').value = '';
+    return;
+  }
+
+  const decimalNumber = parseInt(decimalStr, 10);
+
+  if(isNaN(decimalNumber)) {
+    document.getElementById('hexOutput').value = 'Invalid number';
+    return;
+  }
+
+  // Multiply by 256 (shift left 8 bits)
+  const shiftedNumber = decimalNumber * 256;
+
+  // Convert to uppercase hex and pad to 8 digits
+  let hexString = shiftedNumber.toString(16).toUpperCase().padStart(8, '0');
+
+  // Swap bytes according to pattern:
+  // Original: 4F 3D BE 00
+  // Output:   BE 3D 4F 00
+
+  // Split into bytes
+  const bytes = hexString.match(/.{2}/g); // ["4F", "3D", "BE", "00"]
+
+  if(!bytes || bytes.length !== 4) {
+    document.getElementById('hexOutput').value = 'Error in hex bytes';
+    return;
+  }
+
+  // Swap bytes: 
+  // bytes[0] <-> bytes[2], bytes[1] stays same, bytes[3] stays same
+  const swapped = [bytes[2], bytes[1], bytes[0], bytes[3]];
+
+  const swappedHex = swapped.join('');
+
+  document.getElementById('hexOutput').value = swappedHex;
+}
+</script>
+
+</body>
+</html>
