@@ -491,7 +491,7 @@
     <!-- Hero Section -->
     <section id="home" class="hero">
         <div class="hero-content">
-            <h1>GREATER Art Competition 2025</h1>
+            <h1>GREATER Art Competition</h1>
             <p class="subtitle">Energy connects us all through light, movement, and the stories we live every day.</p>
             <div class="theme-text">
                 "The Power of Creativity: Green Energy for Tomorrow"
