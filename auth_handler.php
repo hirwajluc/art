@@ -1,9 +1,8 @@
 <?php
 session_start();
 
-// Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0); // never expose errors in JSON API
 
 // Set proper headers for AJAX responses
 header('Content-Type: application/json');
@@ -313,11 +312,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
 } else {
-    // Invalid request method
-    http_response_code(405);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Method not allowed'
-    ]);
+    // Direct browser access – redirect to the submission login page
+    header('Location: submit.php');
+    exit;
 }
 ?>

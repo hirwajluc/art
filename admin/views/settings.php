@@ -195,10 +195,10 @@
                     </div>
                     <div class="card-content">
                         <div class="maintenance-actions" style="flex-direction:row; flex-wrap:wrap;">
-                            <a href="?page=exports&type=registrations" class="btn btn-success">
+                            <a href="?page=export&type=registrations" class="btn btn-success">
                                 <i class="fas fa-download"></i> Export Registrations CSV
                             </a>
-                            <a href="?page=exports&type=submissions" class="btn btn-primary">
+                            <a href="?page=export&type=submissions" class="btn btn-primary">
                                 <i class="fas fa-download"></i> Export Submissions CSV
                             </a>
                         </div>

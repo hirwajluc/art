@@ -613,7 +613,7 @@
                 <div class="timeline-event">Registration and submission open</div>
             </div>
             <div class="timeline-item">
-                <div class="timeline-date">June 30, 2026</div>
+                <div class="timeline-date">July 15, 2026</div>
                 <div class="timeline-event">Submission deadline</div>
             </div>
             <div class="timeline-item">
@@ -636,7 +636,7 @@
                 <a href="#about">Competition Rules</a>
                 <a href="https://greaterproject.eu/contact">Contact Us</a>
             </div>
-            <p>&copy; 2025 GREATER Project. Funded by the European Union under ERASMUS+ Programme.</p>
+            <p>&copy; 2026 GREATER Project. Funded by the European Union under ERASMUS+ Programme.</p>
             <p><em>Growing Rwanda Energy Awareness Through Higher Education</em></p>
         </div>
     </footer>
@@ -676,7 +676,7 @@
 
         // Countdown Timer - Updated to July 31, 2025
         function updateCountdown() {
-            const targetDate = new Date('2026-06-30T23:59:59').getTime();
+            const targetDate = new Date('2026-07-15T23:59:59').getTime();
             const now = new Date().getTime();
             const difference = targetDate - now;
 

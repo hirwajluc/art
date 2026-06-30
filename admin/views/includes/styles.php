@@ -102,6 +102,32 @@ body {
     flex: 1;
     margin-left: 280px;
     padding: 30px;
+    min-width: 0; /* prevent flex overflow */
+}
+
+/* Inner wrapper – keeps readable line lengths on ultra-wide monitors */
+.main-content > *:not(.top-bar) {
+    max-width: 1600px;
+}
+
+@media (max-width: 900px) {
+    .sidebar {
+        width: 220px;
+    }
+    .main-content {
+        margin-left: 220px;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 640px) {
+    .sidebar {
+        display: none;
+    }
+    .main-content {
+        margin-left: 0;
+        padding: 15px;
+    }
 }
 
 .top-bar {
@@ -127,6 +153,22 @@ body {
     gap: 15px;
 }
 
+.user-welcome {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.user-welcome span {
+    font-size: 14px;
+    color: var(--dark);
+}
+
+.user-welcome small {
+    font-size: 11px;
+    color: var(--gray);
+}
+
 .user-avatar {
     width: 40px;
     height: 40px;
@@ -137,6 +179,7 @@ body {
     justify-content: center;
     color: white;
     font-weight: bold;
+    flex-shrink: 0;
 }
 
 /* Dashboard Cards */

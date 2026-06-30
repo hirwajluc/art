@@ -34,6 +34,23 @@ try {
     .container {
       display: flex;
       min-height: 100vh;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Wrap the whole page so centering works on ultra-wide screens */
+    body, html {
+      height: 100%;
+      scroll-behavior: smooth;
+      background: #f8f9fa;
+    }
+
+    .page-wrapper {
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     }
 
     .image-side {
@@ -414,6 +431,7 @@ try {
   </style>
 </head>
 <body>
+  <div class="page-wrapper">
   <div class="container">
     <div class="image-side" role="img" aria-label="Art competition background image"></div>
     <div class="login-side">
@@ -767,6 +785,7 @@ try {
       <?php endif; // end registration open check ?>
     </div>
   </div>
+  </div><!-- /page-wrapper -->
 
   <script>
     (function() {

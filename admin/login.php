@@ -578,7 +578,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-left">
             <div class="welcome-content">
                 <!--<div class="logo"></div>-->
-                <h1>GREATER ArtCompetition 2025</h1>
+                <h1>GREATER ArtCompetition</h1>
                 <h1>Admin Panel</h1>
                 <p>Growing Rwanda Energy Awareness Through Higher Education</p>
                 

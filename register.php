@@ -1,9 +1,8 @@
 <?php
 session_start();
 
-// Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0); // never expose errors in JSON API
 
 // DB config - update with your actual credentials
 require_once 'db.php';
@@ -506,42 +505,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'csrf_token' => $_SESSION['csrf_token']
     ]);
     
-} elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['debug'])) {
-    // Debug endpoint to check database status
-    try {
-        $stmt = $pdo->query("SELECT COUNT(*) as total FROM registrations");
-        $count = $stmt->fetch();
-        
-        $stmt = $pdo->query("SELECT * FROM registrations ORDER BY registrationDate DESC LIMIT 5");
-        $recent = $stmt->fetchAll();
-        
-        sendJsonResponse([
-            'database_status' => 'connected',
-            'total_registrations' => $count['total'],
-            'recent_registrations' => $recent,
-            'server_time' => date('Y-m-d H:i:s')
-        ]);
-    } catch (Exception $e) {
-        sendJsonResponse([
-            'database_status' => 'error',
-            'error' => $e->getMessage()
-        ]);
-    }
-    
 } else {
-    // Invalid request method or regular page load
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        // This is a regular page load, not an AJAX request
-        // You can redirect to the registration form or show a simple message
-        header('Location: registration.php');
-        exit;
-    } else {
-        // Invalid request method for API calls
-        http_response_code(405);
-        sendJsonResponse([
-            'success' => false,
-            'message' => 'Method not allowed'
-        ]);
-    }
+    // Any other GET request (or unsupported method) → redirect to registration form
+    header('Location: registration.php');
+    exit;
 }
 ?>

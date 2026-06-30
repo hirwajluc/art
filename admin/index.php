@@ -434,6 +434,90 @@ switch ($page) {
         break;
 
     // -----------------------------------------------------------------------
+    // Winners
+    // -----------------------------------------------------------------------
+    case 'winners':
+        require_once __DIR__ . '/config/database.php';
+        try {
+            $database = new Database();
+            $db = $database->getConnection();
+
+            // Fetch approved (top-scored) submissions
+            $s = $db->query("
+                SELECT s.*, r.fullName AS participantName, r.nationality, r.birthDate
+                FROM submissions s
+                LEFT JOIN registrations r ON r.userCode = s.userCode
+                WHERE s.status = 'approved'
+                ORDER BY s.score DESC, s.submissionDate ASC
+                LIMIT 20
+            ");
+            $approvedSubmissions = $s ? $s->fetchAll(PDO::FETCH_ASSOC) : [];
+
+            $currentUser = [
+                'id'        => $_SESSION['user_id'],
+                'full_name' => $_SESSION['user_full_name'] ?? 'Admin User',
+                'email'     => $_SESSION['user_email']     ?? 'admin@greaterproject.eu',
+                'role'      => $_SESSION['user_role']      ?? 'admin',
+            ];
+            $currentPage = 'winners';
+            include __DIR__ . '/views/winners.php';
+        } catch (Exception $e) {
+            echo "Error loading winners: " . htmlspecialchars($e->getMessage());
+        }
+        break;
+
+    // -----------------------------------------------------------------------
+    // Export Data
+    // -----------------------------------------------------------------------
+    case 'export':
+        require_once __DIR__ . '/config/database.php';
+        try {
+            $database = new Database();
+            $db = $database->getConnection();
+
+            // Handle CSV download requests
+            $exportType = $_GET['type'] ?? '';
+            if (in_array($exportType, ['registrations', 'submissions'])) {
+                header('Content-Type: text/csv; charset=UTF-8');
+                header('Content-Disposition: attachment; filename="' . $exportType . '_' . date('Y-m-d') . '.csv"');
+                header('Pragma: no-cache');
+
+                $out = fopen('php://output', 'w');
+                fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
+
+                if ($exportType === 'registrations') {
+                    fputcsv($out, ['ID','Full Name','Birth Date','Nationality','ID Number','Email','Phone','Category','User Code','Registration Date','IP Address']);
+                    $rows = $db->query("SELECT id,fullName,birthDate,nationality,idNumber,email,phone,category,userCode,registrationDate,ipAddress FROM registrations ORDER BY registrationDate DESC");
+                } else {
+                    fputcsv($out, ['ID','User Code','Participant Name','Email','Category','Artwork Name','Description','File Name','File Size','Status','Score','Submission Date']);
+                    $rows = $db->query("SELECT id,userCode,userName,userEmail,category,artworkName,description,originalFileName,fileSize,status,score,submissionDate FROM submissions ORDER BY submissionDate DESC");
+                }
+
+                foreach ($rows as $row) {
+                    fputcsv($out, $row);
+                }
+                fclose($out);
+                exit;
+            }
+
+            // Count stats for the view
+            $totalRegs  = (int)$db->query("SELECT COUNT(*) FROM registrations")->fetchColumn();
+            $totalSubs  = (int)$db->query("SELECT COUNT(*) FROM submissions")->fetchColumn();
+
+            $currentUser = [
+                'id'        => $_SESSION['user_id'],
+                'full_name' => $_SESSION['user_full_name'] ?? 'Admin User',
+                'email'     => $_SESSION['user_email']     ?? 'admin@greaterproject.eu',
+                'role'      => $_SESSION['user_role']      ?? 'admin',
+            ];
+            $currentPage = 'export';
+            include __DIR__ . '/views/export.php';
+        } catch (Exception $e) {
+            echo "Error loading export: " . htmlspecialchars($e->getMessage());
+        }
+        break;
+
+    // -----------------------------------------------------------------------
     // Submission version history (AJAX)
     // -----------------------------------------------------------------------
     case 'submission_versions':

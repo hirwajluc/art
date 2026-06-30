@@ -29,7 +29,14 @@ switch($currentPage) {
         $pageTitle = 'Export Data';
         break;
     case 'settings':
+    case 'save_settings':
         $pageTitle = 'Settings';
+        break;
+    case 'email_campaigns':
+        $pageTitle = 'Email Campaigns';
+        break;
+    default:
+        $pageTitle = 'Dashboard';
         break;
 }
 ?>

@@ -1,9 +1,8 @@
 <?php
 session_start();
 
-// Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 
 // Set proper headers
 header('Content-Type: text/html; charset=UTF-8');
@@ -54,9 +53,16 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
-            max-width: 500px;
+            max-width: 520px;
             width: 100%;
             text-align: center;
+            margin: auto;
+        }
+
+        @media (min-width: 1200px) {
+            .login-container {
+                padding: 50px 55px;
+            }
         }
 
         .logos-container {
