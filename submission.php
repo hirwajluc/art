@@ -500,7 +500,7 @@ try {
         <div class="header">
             <a href="logout.php" class="logout-btn">Logout</a>
             <h1>Submit Your Artwork</h1>
-            <p class="subtitle">Greater Art Competition 2025</p>
+            <p class="subtitle"><img src="Greater_full_logo.png" alt="GREATER" style="max-height:45px; vertical-align:middle; filter:brightness(0) invert(1);"> Art Competition 2025</p>
         </div>
 
         <div class="user-info">
