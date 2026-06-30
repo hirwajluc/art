@@ -2,9 +2,8 @@
 session_start();
 header('Content-Type: application/json');
 
-// Enable error reporting for debugging
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0); // never expose errors in JSON API
 
 // Function to send JSON response
 function sendResponse($success, $message, $data = null) {
@@ -25,6 +24,22 @@ try {
     // Check if request method is POST
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         sendResponse(false, 'Invalid request method');
+    }
+
+    // Detect when PHP silently dropped POST data because the upload exceeded post_max_size.
+    // When that happens $_POST and $_FILES are both empty even though Content-Length is non-zero.
+    $contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int)$_SERVER['CONTENT_LENGTH'] : 0;
+    if ($contentLength > 0 && empty($_POST) && empty($_FILES)) {
+        $postMaxBytes = (int) preg_replace_callback(
+            '/^\s*(\d+)\s*([kmg]?)\s*$/i',
+            function($m) {
+                $units = ['k' => 1024, 'm' => 1048576, 'g' => 1073741824];
+                return $m[1] * ($units[strtolower($m[2])] ?? 1);
+            },
+            ini_get('post_max_size')
+        );
+        $maxMB = round($postMaxBytes / 1048576);
+        sendResponse(false, "Your file is too large for the server to accept (server limit: {$maxMB}MB). Please contact info@greaterproject.eu if your file is within the allowed size.");
     }
 
     // Check if user is authenticated

@@ -33,6 +33,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendResponse(false, 'Invalid request method.');
 }
 
+// ── Detect post_max_size overflow ─────────────────────────────────────────────
+// When the upload body exceeds post_max_size PHP silently empties $_POST and
+// $_FILES, making the CSRF check below produce a misleading error message.
+$contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int)$_SERVER['CONTENT_LENGTH'] : 0;
+if ($contentLength > 0 && empty($_POST) && empty($_FILES)) {
+    $postMaxBytes = (int) preg_replace_callback(
+        '/^\s*(\d+)\s*([kmg]?)\s*$/i',
+        function($m) {
+            $units = ['k' => 1024, 'm' => 1048576, 'g' => 1073741824];
+            return $m[1] * ($units[strtolower($m[2])] ?? 1);
+        },
+        ini_get('post_max_size')
+    );
+    $maxMB = round($postMaxBytes / 1048576);
+    sendResponse(false, "Your file is too large for the server to accept (server limit: {$maxMB}MB). Please contact info@greaterproject.eu if your file is within the allowed size.");
+}
+
 // ── CSRF ──────────────────────────────────────────────────────────────────────
 if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')) {
     sendResponse(false, 'Invalid security token. Please refresh and try again.');

@@ -2,7 +2,7 @@
 session_start();
 
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 
 // Auth check
 if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
@@ -82,11 +82,15 @@ try {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 860px;
+            width: 100%;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
@@ -815,24 +819,28 @@ try {
         }
 
         function buildPreview(file, previewContentEl, fileDetailsEl, filePreviewEl) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewContentEl.innerHTML = '';
-                if (file.type.startsWith('image/')) {
+            previewContentEl.innerHTML = '';
+            if (file.type.startsWith('image/')) {
+                // Images are small enough to load as data URL for preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
                     const img = document.createElement('img');
                     img.src = e.target.result; img.className = 'preview-image'; img.alt = 'Preview';
                     previewContentEl.appendChild(img);
-                } else if (file.type.startsWith('video/')) {
-                    const v = document.createElement('video');
-                    v.src = e.target.result; v.className = 'preview-video'; v.controls = true;
-                    previewContentEl.appendChild(v);
-                }
-                fileDetailsEl.innerHTML = `
-                    <div class="file-name">📁 ${file.name}</div>
-                    <div class="file-size">📊 ${formatFileSize(file.size)}</div>`;
-                filePreviewEl.classList.add('show');
-            };
-            reader.readAsDataURL(file);
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith('video/')) {
+                // Use object URL for video — avoids loading hundreds of MB into memory as base64
+                const objectUrl = URL.createObjectURL(file);
+                const v = document.createElement('video');
+                v.src = objectUrl; v.className = 'preview-video'; v.controls = true;
+                v.onload = function() { URL.revokeObjectURL(objectUrl); };
+                previewContentEl.appendChild(v);
+            }
+            fileDetailsEl.innerHTML = `
+                <div class="file-name">📁 ${file.name}</div>
+                <div class="file-size">📊 ${formatFileSize(file.size)}</div>`;
+            filePreviewEl.classList.add('show');
         }
 
         // ── First-time submission form ──────────────────────────────────────
