@@ -11,7 +11,7 @@ $currentUser = [
 ?>
 <nav class="sidebar">
     <div class="logo">
-        <h1>GREATER</h1>
+        <img src="../Greater_full_logo.png" alt="GREATER" style="max-height:50px; filter:brightness(0) invert(1); display:block; margin-bottom:6px;">
         <p>Art Competition Admin Panel</p>
     </div>
     

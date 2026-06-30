@@ -523,7 +523,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-left">
             <div class="welcome-content">
                 <div class="logo"></div>
-                <h1>GREATER</h1>
+                <img src="../Greater_full_logo.png" alt="GREATER" style="max-height:70px; filter:brightness(0) invert(1); display:block; margin-bottom:12px;">
                 <p>Growing Rwanda Energy Awareness Through Higher Education</p>
                 
                 <div class="features">

@@ -491,7 +491,7 @@
     <!-- Hero Section -->
     <section id="home" class="hero">
         <div class="hero-content">
-            <h1><img src="Greater_full_logo.png" alt="GREATER" style="max-height:90px; vertical-align:middle; filter:brightness(0) invert(1);"> Art Competition</h1>
+            <h1>GREATER Art Competition</h1>
             <p class="subtitle">Energy connects us all through light, movement, and the stories we live every day.</p>
             <div class="theme-text">
                 "The Power of Creativity: Green Energy for Tomorrow"
@@ -526,7 +526,7 @@
     
     <!-- About Section -->
     <section id="about" class="section animate-on-scroll">
-        <h2 class="section-title">Join the <img src="Greater_full_logo.png" alt="GREATER" style="max-height:55px; vertical-align:middle; filter:brightness(0) invert(1);"> Art Contest!</h2>
+        <h2 class="section-title">Join the GREATER Art Contest!</h2>
         <div class="info-grid">
             <div class="info-card">
                 <h3>🎨 Show Your Vision</h3>
