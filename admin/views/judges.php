@@ -68,11 +68,12 @@
             <p style="color:var(--gray); font-size:16px;">No judges yet. Click <strong>Add Judge</strong> to create the first account.</p>
         </div>
         <?php else: ?>
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px,1fr)); gap:20px;">
+        <div style="display:flex; flex-direction:column; gap:16px;">
         <?php foreach ($judges as $judge):
             $hasPendingInvite = !empty($judge['password_setup_token']) &&
                                 !empty($judge['token_expires_at']) &&
                                 strtotime($judge['token_expires_at']) > time();
+            $accepted = !$hasPendingInvite; // Judge has set their password
             $scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $baseUrl  = $scheme . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
             $judgeInviteLink = $hasPendingInvite
@@ -80,63 +81,89 @@
                 : '';
         ?>
         <div class="judge-card">
-            <div class="judge-card-header">
+            <!-- Header row -->
+            <div class="judge-card-header" style="flex-wrap:wrap; gap:12px;">
                 <div class="judge-avatar" style="<?php echo $hasPendingInvite ? 'background:linear-gradient(135deg,#f59e0b,#d97706);' : ''; ?>">
                     <?php echo $hasPendingInvite ? '✉' : strtoupper(substr($judge['full_name'],0,1)); ?>
                 </div>
-                <div class="judge-meta">
+                <div class="judge-meta" style="min-width:200px;">
                     <h3><?php echo htmlspecialchars($judge['full_name']); ?></h3>
-                    <small>@<?php echo htmlspecialchars($judge['username']); ?> · <?php echo htmlspecialchars($judge['email']); ?></small>
+                    <small>@<?php echo htmlspecialchars($judge['username']); ?> &nbsp;·&nbsp; <?php echo htmlspecialchars($judge['email']); ?></small>
                 </div>
-                <?php if ($hasPendingInvite): ?>
-                <span class="status-badge" style="background:#fef9c3; color:#92400e; border:1px solid #f59e0b;">
-                    <i class="fas fa-clock"></i> Invite Pending
-                </span>
-                <?php else: ?>
-                <span class="status-badge <?php echo $judge['status'] === 'active' ? 'status-active' : 'status-inactive'; ?>">
-                    <?php echo ucfirst($judge['status']); ?>
-                </span>
-                <?php endif; ?>
+
+                <!-- Status badge -->
+                <div style="margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <?php if ($hasPendingInvite): ?>
+                    <span class="status-badge" style="background:#fef9c3; color:#92400e; border:1px solid #f59e0b;">
+                        <i class="fas fa-envelope"></i> Invite Pending
+                    </span>
+                    <?php else: ?>
+                    <span class="status-badge <?php echo $judge['status'] === 'active' ? 'status-active' : 'status-inactive'; ?>">
+                        <i class="fas fa-<?php echo $judge['status'] === 'active' ? 'check-circle' : 'ban'; ?>"></i>
+                        <?php echo $judge['status'] === 'active' ? 'Active' : 'Disabled'; ?>
+                    </span>
+                    <?php endif; ?>
+
+                    <!-- Stats inline -->
+                    <span style="font-size:13px; color:var(--gray);">
+                        <i class="fas fa-gavel"></i> <?php echo (int)$judge['evaluated_count']; ?> evaluated
+                        &nbsp;·&nbsp;
+                        <i class="fas fa-check-double"></i> <?php echo (int)$judge['submitted_count']; ?> submitted
+                    </span>
+                </div>
             </div>
 
+            <!-- Pending invite: show copyable link -->
             <?php if ($hasPendingInvite): ?>
-            <div style="padding:12px 24px; background:#fffbeb; border-bottom:1px solid #fde68a;">
-                <p style="font-size:12px; color:#92400e; margin-bottom:8px;"><i class="fas fa-info-circle"></i> Judge hasn't set their password yet. Share this invite link with them:</p>
-                <div style="display:flex; gap:6px;">
+            <div style="padding:14px 24px; background:#fffbeb; border-top:1px solid #fde68a; border-bottom:1px solid #fde68a;">
+                <p style="font-size:13px; color:#92400e; margin-bottom:10px;">
+                    <i class="fas fa-info-circle"></i> This judge has not accepted the invitation yet. Share the link below directly:
+                </p>
+                <div style="display:flex; gap:8px; align-items:center;">
                     <input type="text" value="<?php echo htmlspecialchars($judgeInviteLink); ?>" readonly
                            id="link_<?php echo $judge['id']; ?>"
-                           style="flex:1; font-size:11px; padding:6px 10px; border:1px solid #f59e0b; border-radius:6px; background:#fff; font-family:monospace; min-width:0;">
-                    <button onclick="copyLink('link_<?php echo $judge['id']; ?>')" class="btn btn-warning" style="font-size:12px; padding:6px 10px; white-space:nowrap;">
-                        <i class="fas fa-copy"></i> Copy
+                           style="flex:1; font-size:12px; padding:8px 12px; border:1.5px solid #f59e0b; border-radius:8px; background:#fff; font-family:monospace; min-width:0;">
+                    <button onclick="copyLink('link_<?php echo $judge['id']; ?>')" class="btn btn-warning" style="white-space:nowrap;">
+                        <i class="fas fa-copy"></i> Copy Link
                     </button>
                 </div>
-                <p style="font-size:11px; color:#b45309; margin-top:6px;"><i class="fas fa-clock"></i> Expires: <?php echo date('M j, Y g:i A', strtotime($judge['token_expires_at'])); ?></p>
+                <p style="font-size:12px; color:#b45309; margin-top:8px;">
+                    <i class="fas fa-clock"></i> Expires: <?php echo date('M j, Y g:i A', strtotime($judge['token_expires_at'])); ?>
+                </p>
             </div>
             <?php endif; ?>
 
-            <div class="judge-stats">
-                <div class="j-stat"><div class="num"><?php echo (int)$judge['evaluated_count']; ?></div><div class="lbl">Evaluated</div></div>
-                <div class="j-stat"><div class="num"><?php echo (int)$judge['submitted_count']; ?></div><div class="lbl">Submitted</div></div>
-                <div class="j-stat"><div class="num"><?php echo date('M j, Y', strtotime($judge['created_at'])); ?></div><div class="lbl">Created</div></div>
-            </div>
-            <div class="judge-actions">
+            <!-- Action bar -->
+            <div class="judge-actions" style="padding:14px 24px;">
                 <button class="btn btn-primary" onclick="openEditModal(<?php echo $judge['id']; ?>, '<?php echo htmlspecialchars(addslashes($judge['full_name'])); ?>', '<?php echo htmlspecialchars(addslashes($judge['email'])); ?>')">
                     <i class="fas fa-edit"></i> Edit
                 </button>
-                <button class="btn btn-warning" onclick="openResetModal(<?php echo $judge['id']; ?>, '<?php echo htmlspecialchars(addslashes($judge['full_name'])); ?>')">
-                    <i class="fas fa-key"></i> Reset Password
-                </button>
-                <a href="?page=toggle_judge&id=<?php echo $judge['id']; ?>" class="btn <?php echo $judge['status'] === 'active' ? 'btn-secondary' : 'btn-success'; ?>"
-                   onclick="return confirm('<?php echo $judge['status'] === 'active' ? 'Disable' : 'Enable'; ?> this judge?')">
-                    <i class="fas fa-<?php echo $judge['status'] === 'active' ? 'ban' : 'check'; ?>"></i>
-                    <?php echo $judge['status'] === 'active' ? 'Disable' : 'Enable'; ?>
-                </a>
+
+                <?php if ($accepted): ?>
+                    <!-- Only show password reset for judges who have already accepted -->
+                    <button class="btn btn-warning" onclick="openResetModal(<?php echo $judge['id']; ?>, '<?php echo htmlspecialchars(addslashes($judge['full_name'])); ?>')">
+                        <i class="fas fa-key"></i> Reset Password
+                    </button>
+                    <!-- Disable / Enable only for judges who accepted -->
+                    <a href="?page=toggle_judge&id=<?php echo $judge['id']; ?>"
+                       class="btn <?php echo $judge['status'] === 'active' ? 'btn-secondary' : 'btn-success'; ?>"
+                       onclick="return confirm('<?php echo $judge['status'] === 'active' ? 'Disable' : 'Enable'; ?> this judge?')">
+                        <i class="fas fa-<?php echo $judge['status'] === 'active' ? 'ban' : 'check'; ?>"></i>
+                        <?php echo $judge['status'] === 'active' ? 'Disable' : 'Enable'; ?>
+                    </a>
+                <?php endif; ?>
+
+                <!-- Remove: always allowed when no submitted evals -->
                 <?php if ((int)$judge['submitted_count'] === 0): ?>
                 <a href="?page=delete_judge&id=<?php echo $judge['id']; ?>" class="btn btn-danger"
-                   onclick="return confirm('Remove judge <?php echo htmlspecialchars(addslashes($judge['full_name'])); ?>? This cannot be undone.')">
-                    <i class="fas fa-trash"></i> Remove
+                   onclick="return confirm('Permanently remove <?php echo htmlspecialchars(addslashes($judge['full_name'])); ?>?\n\nThis cannot be undone.')">
+                    <i class="fas fa-trash"></i> <?php echo $hasPendingInvite ? 'Revoke & Remove' : 'Remove'; ?>
                 </a>
                 <?php endif; ?>
+
+                <span style="margin-left:auto; font-size:12px; color:var(--gray);">
+                    Added <?php echo date('M j, Y', strtotime($judge['created_at'])); ?>
+                </span>
             </div>
         </div>
         <?php endforeach; ?>

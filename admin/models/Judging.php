@@ -82,43 +82,43 @@ class Judging {
     // ── Judge (admin_users with role='jury') Management ───────────────────────
 
     public function getJudges(): array {
-        // First try the full query with evaluation counts
+        // Exclude soft-deleted entries (username contains _deleted_)
+        $notDeleted = "u.username NOT LIKE '%\_deleted\_%'";
+
         try {
             $stmt = $this->db->query("
                 SELECT u.id, u.username, u.email, u.full_name, u.status, u.created_at,
                        u.password_setup_token, u.token_expires_at,
-                       COUNT(DISTINCT je.submission_id)                              AS evaluated_count,
-                       SUM(CASE WHEN je.status = 'submitted' THEN 1 ELSE 0 END)    AS submitted_count
+                       COUNT(DISTINCT je.submission_id)                           AS evaluated_count,
+                       SUM(CASE WHEN je.status = 'submitted' THEN 1 ELSE 0 END)  AS submitted_count
                 FROM admin_users u
                 LEFT JOIN jury_evaluations je ON je.judge_id = u.id
-                WHERE u.role = 'jury'
+                WHERE u.role = 'jury' AND $notDeleted
                 GROUP BY u.id
                 ORDER BY u.created_at DESC
             ");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            // jury_evaluations may not exist yet — fall back to basic query
-        }
+        } catch (PDOException $e) { /* jury_evaluations may not exist yet */ }
+
         try {
             $stmt = $this->db->query("
                 SELECT id, username, email, full_name, status, created_at,
                        password_setup_token, token_expires_at,
                        0 AS evaluated_count, 0 AS submitted_count
                 FROM admin_users
-                WHERE role = 'jury'
+                WHERE role = 'jury' AND username NOT LIKE '%\_deleted\_%'
                 ORDER BY created_at DESC
             ");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            // password_setup_token columns may not exist yet — simplest possible fallback
-        }
+        } catch (PDOException $e) { /* token columns may not exist yet */ }
+
         try {
             $stmt = $this->db->query("
                 SELECT id, username, email, full_name, status, created_at,
                        NULL AS password_setup_token, NULL AS token_expires_at,
                        0 AS evaluated_count, 0 AS submitted_count
                 FROM admin_users
-                WHERE role = 'jury'
+                WHERE role = 'jury' AND username NOT LIKE '%\_deleted\_%'
                 ORDER BY created_at DESC
             ");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -258,12 +258,15 @@ class Judging {
             $stmt->execute([$id]);
             $judge = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$judge) return ['success' => false, 'message' => 'Judge not found.'];
-            // Soft delete: mark inactive, rename to preserve audit trail
-            $this->db->prepare("UPDATE admin_users SET status = 'inactive', username = CONCAT(username,'_deleted_',?), updated_at = NOW() WHERE id = ?")->execute([time(), $id]);
+            // Hard delete — only reached when judge has 0 submitted evaluations
+            $this->db->prepare("DELETE FROM admin_users WHERE id = ? AND role = 'jury'")->execute([$id]);
+            // Also clean up any draft evaluations they may have started
+            $this->db->prepare("DELETE FROM jury_evaluations WHERE judge_id = ? AND status = 'draft'")->execute([$id]);
             $this->logActivity($adminId, 'JUDGE_DELETED', "Deleted judge: {$judge['username']}");
-            return ['success' => true, 'message' => 'Judge removed.'];
+            return ['success' => true, 'message' => "Judge \"{$judge['username']}\" removed."];
         } catch (PDOException $e) {
-            return ['success' => false, 'message' => 'Database error.'];
+            error_log("Judging::deleteJudge — " . $e->getMessage());
+            return ['success' => false, 'message' => 'Database error removing judge.'];
         }
     }
 
