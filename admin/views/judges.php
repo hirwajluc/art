@@ -77,7 +77,7 @@
             $scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $baseUrl  = $scheme . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
             $judgeInviteLink = $hasPendingInvite
-                ? $baseUrl . '/admin/?page=set_password&token=' . $judge['password_setup_token']
+                ? $baseUrl . '/?page=set_password&token=' . $judge['password_setup_token']
                 : '';
         ?>
         <div class="judge-card">

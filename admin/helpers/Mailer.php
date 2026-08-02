@@ -6,7 +6,7 @@
 class Mailer {
 
     private $host      = 'smtp.aruba.it';
-    private $port      = 587;
+    private $port      = 25;
     private $user      = 'no_reply@greaterproject.eu';
     private $pass      = 'Hirwa@123';
     private $fromEmail = 'no_reply@greaterproject.eu';
