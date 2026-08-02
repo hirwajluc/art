@@ -718,7 +718,7 @@ switch ($page) {
                     $param   = $result['success'] ? 'success' : 'error';
                     // Store invite link in session so it survives the redirect and can be shown in the UI
                     if ($result['success'] && isset($result['token'])) {
-                        $_SESSION['new_invite_link'] = $baseUrl . '/admin/?page=set_password&token=' . $result['token'];
+                        $_SESSION['new_invite_link'] = $baseUrl . '/?page=set_password&token=' . $result['token'];
                     }
                     header('Location: ?page=judges&' . $param . '=' . urlencode($result['message']));
                 }

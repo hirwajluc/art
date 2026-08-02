@@ -178,7 +178,7 @@ class Judging {
             $stmt->execute([$username, $email, $placeholder, $fullName, $token, $expires]);
 
             // Send invitation email via SMTP (Aruba smtp.aruba.it)
-            $setupLink = rtrim($baseUrl, '/') . '/admin/?page=set_password&token=' . $token;
+            $setupLink = rtrim($baseUrl, '/') . '/?page=set_password&token=' . $token;
             $subject   = 'You have been invited as a judge — GREATER Art Competition';
             $htmlBody  = $this->buildJudgeInviteHtml($fullName, $username, $setupLink);
 
@@ -299,30 +299,59 @@ class Judging {
             elseif ($evalStatus === 'submitted') $havingClause = "HAVING eval_status = 'submitted'";
 
             $whereStr = implode(' AND ', $where);
-            $sql = "
-                SELECT
-                    s.id,
-                    s.userCode        AS competition_code,
-                    s.artworkName     AS artwork_name,
-                    s.category,
-                    s.fileType,
-                    s.filePath,
-                    s.fileName,
-                    s.submissionDate,
-                    je.id             AS evaluation_id,
-                    je.status         AS eval_status,
-                    je.total_score,
-                    je.submitted_at
-                FROM submissions s
-                LEFT JOIN jury_evaluations je
-                    ON je.submission_id = s.id AND je.judge_id = :judge_id
-                WHERE $whereStr
-                $havingClause
-                ORDER BY s.submissionDate ASC
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Try with jury_evaluations JOIN first; fall back to submissions-only if table doesn't exist yet
+            try {
+                $sql = "
+                    SELECT
+                        s.id,
+                        s.userCode        AS competition_code,
+                        s.artworkName     AS artwork_name,
+                        s.category,
+                        s.fileType,
+                        s.filePath,
+                        s.fileName,
+                        s.submissionDate,
+                        je.id             AS evaluation_id,
+                        je.status         AS eval_status,
+                        je.total_score,
+                        je.submitted_at
+                    FROM submissions s
+                    LEFT JOIN jury_evaluations je
+                        ON je.submission_id = s.id AND je.judge_id = :judge_id
+                    WHERE $whereStr
+                    $havingClause
+                    ORDER BY s.submissionDate ASC
+                ";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($params);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (PDOException $e) {
+                // jury_evaluations table not yet created — return submissions with null eval columns
+                if (!empty($havingClause)) return []; // can't filter by eval status without the table
+                unset($params[':judge_id']);
+                $sql2 = "
+                    SELECT
+                        s.id,
+                        s.userCode    AS competition_code,
+                        s.artworkName AS artwork_name,
+                        s.category,
+                        s.fileType,
+                        s.filePath,
+                        s.fileName,
+                        s.submissionDate,
+                        NULL AS evaluation_id,
+                        NULL AS eval_status,
+                        NULL AS total_score,
+                        NULL AS submitted_at
+                    FROM submissions s
+                    WHERE $whereStr
+                    ORDER BY s.submissionDate ASC
+                ";
+                $stmt2 = $this->db->prepare($sql2);
+                $stmt2->execute($params);
+                return $stmt2->fetchAll(PDO::FETCH_ASSOC);
+            }
         } catch (PDOException $e) {
             error_log("Judging::getSubmissionsForJudge — " . $e->getMessage());
             return [];
@@ -636,9 +665,14 @@ class Judging {
 
     /** Proper version using prepared statements */
     public function getJudgeStats(int $judgeId): array {
+        $total = 0;
         try {
             $total = (int)$this->db->query("SELECT COUNT(*) FROM submissions")->fetchColumn();
+        } catch (PDOException $e) {}
 
+        $submitted = 0;
+        $drafted   = 0;
+        try {
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM jury_evaluations WHERE judge_id = ? AND status = 'submitted'");
             $stmt->execute([$judgeId]);
             $submitted = (int)$stmt->fetchColumn();
@@ -646,17 +680,15 @@ class Judging {
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM jury_evaluations WHERE judge_id = ? AND status = 'draft'");
             $stmt->execute([$judgeId]);
             $drafted = (int)$stmt->fetchColumn();
+        } catch (PDOException $e) { /* jury_evaluations not yet created */ }
 
-            return [
-                'total'     => $total,
-                'submitted' => $submitted,
-                'drafted'   => $drafted,
-                'pending'   => max(0, $total - $submitted - $drafted),
-                'pct'       => $total > 0 ? round(($submitted / $total) * 100) : 0,
-            ];
-        } catch (PDOException $e) {
-            return ['total' => 0, 'submitted' => 0, 'drafted' => 0, 'pending' => 0, 'pct' => 0];
-        }
+        return [
+            'total'     => $total,
+            'submitted' => $submitted,
+            'drafted'   => $drafted,
+            'pending'   => max(0, $total - $submitted - $drafted),
+            'pct'       => $total > 0 ? round(($submitted / $total) * 100) : 0,
+        ];
     }
 
     public function getAdminResultStats(): array {
