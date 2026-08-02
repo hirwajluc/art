@@ -16,6 +16,10 @@
         <main class="main-content">
             <?php include 'views/includes/topbar.php'; ?>
             
+            <?php if (isset($_GET['error'])): ?>
+            <div class="alert alert-error" style="margin-bottom:20px;"><i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars(urldecode($_GET['error'])); ?></div>
+            <?php endif; ?>
+
             <div class="export-container">
                 <div class="export-grid">
                     <!-- Registrations Export -->
@@ -66,6 +70,34 @@
                                 <i class="fas fa-download"></i>
                                 Download Jury Results CSV
                             </a>
+                        </div>
+                    </div>
+
+                    <!-- Submissions ZIP Export -->
+                    <div class="export-card">
+                        <div class="card-header" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">
+                            <h3><i class="fas fa-file-archive"></i> Export Artwork Files (ZIP)</h3>
+                        </div>
+                        <div class="card-content">
+                            <p>Download all original artwork files packaged into a ZIP archive. Files are organised into folders by category.</p>
+                            <div style="background:#fef9c3; border-left:4px solid #f59e0b; border-radius:4px; padding:10px 14px; margin-bottom:18px; font-size:13px; color:#92400e;">
+                                <i class="fas fa-exclamation-triangle"></i> <strong>Large files:</strong> Videos can be 300MB+ each. This may take several minutes to generate.
+                            </div>
+                            <form method="GET" action="">
+                                <input type="hidden" name="page" value="export">
+                                <input type="hidden" name="type" value="submissions_zip">
+                                <div style="margin-bottom:14px;">
+                                    <label style="display:block; font-size:13px; font-weight:600; color:var(--dark); margin-bottom:6px;">Filter by Category (optional)</label>
+                                    <select name="category" style="width:100%; padding:9px 12px; border:2px solid #e2e8f0; border-radius:8px; font-size:14px;">
+                                        <option value="">All Categories</option>
+                                        <option value="photography_paint">Photography / Paint only</option>
+                                        <option value="short_video">Short Video only</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#7c3aed,#4f46e5); width:100%; justify-content:center; display:flex; align-items:center; gap:8px; border:none; padding:12px;">
+                                    <i class="fas fa-file-archive"></i> Generate &amp; Download ZIP
+                                </button>
+                            </form>
                         </div>
                     </div>
 

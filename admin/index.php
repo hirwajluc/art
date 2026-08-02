@@ -531,6 +531,69 @@ switch ($page) {
                 exit;
             }
 
+            // Handle ZIP export of submission files
+            if ($exportType === 'submissions_zip') {
+                if (!class_exists('ZipArchive')) {
+                    die('ZipArchive extension is not available on this server.');
+                }
+
+                $category = trim($_GET['category'] ?? '');
+                set_time_limit(600); // large files may take a while
+                ini_set('memory_limit', '512M');
+
+                // Build query
+                $baseDir = dirname(__DIR__); // /var/www/html/art
+                $where   = $category ? "WHERE category = " . $db->quote($category) : '';
+                $rows    = $db->query("SELECT userCode, artworkName, category, originalFileName, filePath FROM submissions $where ORDER BY userCode ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+                if (empty($rows)) {
+                    header('Location: ?page=export&error=' . urlencode('No submissions found' . ($category ? " for category: $category" : '') . '.'));
+                    exit;
+                }
+
+                // Build ZIP into a temp file
+                $zipName = 'submissions' . ($category ? '_' . $category : '') . '_' . date('Y-m-d') . '.zip';
+                $tmpPath = sys_get_temp_dir() . '/' . uniqid('art_export_') . '.zip';
+
+                $zip = new ZipArchive();
+                if ($zip->open($tmpPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+                    header('Location: ?page=export&error=' . urlencode('Could not create ZIP file.'));
+                    exit;
+                }
+
+                $added   = 0;
+                $missing = 0;
+                foreach ($rows as $row) {
+                    $absPath = $baseDir . '/' . ltrim($row['filePath'], '/');
+                    if (!file_exists($absPath)) { $missing++; continue; }
+
+                    // Sanitise the name used inside the ZIP
+                    $ext      = pathinfo($row['originalFileName'], PATHINFO_EXTENSION);
+                    $safeName = preg_replace('/[^\w\-. ()]/', '_', $row['artworkName']);
+                    $safeName = mb_substr($safeName, 0, 80);
+                    $folder   = $row['category'] === 'photography_paint' ? 'Photography_Paint' : 'Short_Video';
+                    $entryName = $folder . '/' . $row['userCode'] . ' - ' . $safeName . '.' . $ext;
+
+                    $zip->addFile($absPath, $entryName);
+                    $added++;
+                }
+                $zip->close();
+
+                if ($added === 0) {
+                    @unlink($tmpPath);
+                    header('Location: ?page=export&error=' . urlencode('No files found on disk to package.'));
+                    exit;
+                }
+
+                header('Content-Type: application/zip');
+                header('Content-Disposition: attachment; filename="' . $zipName . '"');
+                header('Content-Length: ' . filesize($tmpPath));
+                header('Pragma: no-cache');
+                readfile($tmpPath);
+                @unlink($tmpPath);
+                exit;
+            }
+
             // Count stats for the view
             $totalRegs  = (int)$db->query("SELECT COUNT(*) FROM registrations")->fetchColumn();
             $totalSubs  = (int)$db->query("SELECT COUNT(*) FROM submissions")->fetchColumn();
