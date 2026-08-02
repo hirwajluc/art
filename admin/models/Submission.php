@@ -57,23 +57,24 @@ class Submission {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
     
-    public function updateSubmissionStatus($id, $status, $score = null, $feedback = null, $reviewedBy = null) {
-        $query = "UPDATE submissions SET 
-                  status = :status, 
-                  score = :score, 
-                  jury_feedback = :feedback, 
-                  reviewed_at = NOW(),
-                  reviewed_by = :reviewed_by
-                  WHERE id = :id";
-        
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $id);
-        $stmt->bindParam(':status', $status);
-        $stmt->bindParam(':score', $score);
-        $stmt->bindParam(':feedback', $feedback);
-        $stmt->bindParam(':reviewed_by', $reviewedBy);
-        
+    public function saveAdminNote($id, $note, $adminId) {
+        $stmt = $this->conn->prepare("UPDATE submissions SET jury_feedback = :note, reviewed_by = :admin WHERE id = :id");
+        $stmt->bindParam(':note',  $note);
+        $stmt->bindParam(':admin', $adminId);
+        $stmt->bindParam(':id',    $id);
         return $stmt->execute();
+    }
+
+    public function updateStatus($id, $status) {
+        $stmt = $this->conn->prepare("UPDATE submissions SET status = :status WHERE id = :id");
+        $stmt->bindParam(':status', $status);
+        $stmt->bindParam(':id',     $id);
+        return $stmt->execute();
+    }
+
+    // Keep for backwards compatibility (Winners page reads status=approved)
+    public function updateSubmissionStatus($id, $status, $score = null, $feedback = null, $reviewedBy = null) {
+        return $this->updateStatus($id, $status);
     }
     
     public function getTotalCount($search = '', $status = '') {

@@ -208,41 +208,35 @@
                     <!-- Review Information Card -->
                     <div class="detail-card">
                         <div class="card-header">
-                            <h3><i class="fas fa-gavel"></i> Review Information</h3>
-                            <?php if ($submission['status'] === 'pending'): ?>
-                                <button onclick="openReviewModal(<?php echo $submission['id']; ?>)" 
-                                        class="btn btn-warning">
-                                    <i class="fas fa-edit"></i>
-                                    Review Now
-                                </button>
-                            <?php endif; ?>
+                            <h3><i class="fas fa-comment-alt"></i> Admin Note for Judges</h3>
+                            <button onclick="openNoteModal()" class="btn btn-warning">
+                                <i class="fas fa-edit"></i>
+                                <?php echo $submission['jury_feedback'] ? 'Edit Note' : 'Add Note'; ?>
+                            </button>
                         </div>
                         <div class="card-content">
-                            <div class="review-grid">
-                                <div class="info-item">
-                                    <label>Score</label>
-                                    <?php if ($submission['score']): ?>
-                                        <span class="score-display"><?php echo number_format($submission['score'], 1); ?>/100</span>
-                                    <?php else: ?>
-                                        <span class="no-score">Not scored yet</span>
-                                    <?php endif; ?>
+                            <?php if ($submission['jury_feedback']): ?>
+                                <div class="feedback-content" style="background:#fffbeb; border-left:4px solid #f59e0b; border-radius:6px; padding:14px 16px; color:#374151; line-height:1.7;">
+                                    <?php echo nl2br(htmlspecialchars($submission['jury_feedback'])); ?>
                                 </div>
-                                <div class="info-item">
-                                    <label>Reviewed At</label>
-                                    <span><?php echo $submission['reviewed_at'] ? formatDate($submission['reviewed_at']) : 'Not reviewed yet'; ?></span>
-                                </div>
-                                <div class="info-item">
-                                    <label>Reviewed By</label>
-                                    <span><?php echo $submission['reviewed_by'] ? 'Admin User' : 'Not reviewed yet'; ?></span>
-                                </div>
-                                <?php if ($submission['jury_feedback']): ?>
-                                    <div class="info-item full-width">
-                                        <label>Jury Feedback</label>
-                                        <div class="feedback-content">
-                                            <?php echo nl2br(htmlspecialchars($submission['jury_feedback'])); ?>
-                                        </div>
-                                    </div>
-                                <?php endif; ?>
+                                <p style="color:var(--gray); font-size:12px; margin-top:10px;"><i class="fas fa-info-circle"></i> This note is visible to judges during evaluation. It does not affect scores.</p>
+                            <?php else: ?>
+                                <p style="color:var(--gray); font-style:italic;">No admin note added yet. Notes are visible to judges but do not affect scores.</p>
+                            <?php endif; ?>
+
+                            <!-- Status classification (for Winners page only, not scoring) -->
+                            <div style="margin-top:18px; padding-top:16px; border-top:1px solid #f0f0f0; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                                <span style="font-size:13px; font-weight:600; color:var(--dark);">Classification:</span>
+                                <form method="POST" action="?page=update_submission" style="display:flex; align-items:center; gap:8px;">
+                                    <input type="hidden" name="id"     value="<?php echo $submission['id']; ?>">
+                                    <input type="hidden" name="action" value="status">
+                                    <select name="status" class="form-select" style="font-size:13px; padding:5px 10px; border-radius:6px;">
+                                        <option value="pending"  <?php echo $submission['status']==='pending'  ? 'selected':''; ?>>Pending</option>
+                                        <option value="approved" <?php echo $submission['status']==='approved' ? 'selected':''; ?>>Approved (shown on Winners page)</option>
+                                        <option value="rejected" <?php echo $submission['status']==='rejected' ? 'selected':''; ?>>Rejected</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-secondary" style="font-size:12px; padding:5px 12px;">Save</button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -343,48 +337,29 @@
         </div>
     </div>
 
-    <!-- Review Modal -->
-    <div class="modal" id="reviewModal">
+    <!-- Admin Note Modal -->
+    <div class="modal" id="noteModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Review Submission: <?php echo htmlspecialchars($submission['artworkName']); ?></h3>
+                <h3 class="modal-title"><i class="fas fa-comment-alt"></i> Admin Note for Judges</h3>
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
+            <p style="color:var(--gray); font-size:13px; margin-bottom:16px;">
+                This note will be visible to judges when they evaluate this artwork. It does <strong>not</strong> affect the score — scoring is done entirely by the jury.
+            </p>
             <form method="POST" action="?page=update_submission">
-                <input type="hidden" name="id" value="<?php echo $submission['id']; ?>">
-                
+                <input type="hidden" name="id"     value="<?php echo $submission['id']; ?>">
+                <input type="hidden" name="action" value="note">
                 <div class="form-group">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" name="status" required>
-                        <option value="">Select Status</option>
-                        <option value="approved" <?php echo $submission['status'] === 'approved' ? 'selected' : ''; ?>>Approved</option>
-                        <option value="rejected" <?php echo $submission['status'] === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                        <option value="pending" <?php echo $submission['status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                    </select>
+                    <label class="form-label">Note (visible to judges)</label>
+                    <textarea class="form-textarea"
+                              name="note"
+                              rows="5"
+                              placeholder="Optional context or note for the judges…"><?php echo htmlspecialchars($submission['jury_feedback'] ?? ''); ?></textarea>
                 </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Score (0-100)</label>
-                    <input type="number" 
-                           class="form-input" 
-                           name="score" 
-                           min="0" 
-                           max="100" 
-                           step="0.1" 
-                           value="<?php echo $submission['score'] ? $submission['score'] : ''; ?>"
-                           placeholder="Enter score">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Feedback</label>
-                    <textarea class="form-textarea" 
-                              name="feedback" 
-                              placeholder="Enter your feedback for the participant..."><?php echo htmlspecialchars($submission['jury_feedback']); ?></textarea>
-                </div>
-                
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Note</button>
                 </div>
             </form>
         </div>
@@ -605,20 +580,20 @@
             }
         }
 
-        function openReviewModal(submissionId) {
-            document.getElementById('reviewModal').style.display = 'block';
+        function openNoteModal() {
+            document.getElementById('noteModal').style.display = 'block';
         }
 
         function closeModal() {
-            document.getElementById('reviewModal').style.display = 'none';
+            document.getElementById('noteModal').style.display = 'none';
         }
 
         // Event listeners
         window.addEventListener('click', function(e) {
-            const reviewModal = document.getElementById('reviewModal');
+            const noteModal    = document.getElementById('noteModal');
             const artworkModal = document.getElementById('artworkModal');
-            
-            if (e.target === reviewModal) {
+
+            if (e.target === noteModal) {
                 closeModal();
             }
         });

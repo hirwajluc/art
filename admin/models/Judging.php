@@ -303,7 +303,8 @@ class Judging {
         try {
             $stmt = $this->db->prepare("
                 SELECT id, userCode AS competition_code, artworkName AS artwork_name,
-                       category, fileType, filePath, fileName, description, submissionDate
+                       category, fileType, filePath, fileName, description, submissionDate,
+                       jury_feedback AS admin_note
                 FROM submissions WHERE id = ?
             ");
             $stmt->execute([$submissionId]);

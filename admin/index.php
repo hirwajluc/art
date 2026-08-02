@@ -312,24 +312,28 @@ switch ($page) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/config/database.php';
             require_once __DIR__ . '/models/Submission.php';
-
             try {
                 $submissionModel = new Submission();
-                $id = (int)$_POST['id'];
-                $status = $_POST['status'] ?? '';
-                $score = !empty($_POST['score']) ? (float)$_POST['score'] : null;
-                $feedback = !empty($_POST['feedback']) ? trim($_POST['feedback']) : null;
-                $reviewedBy = $_SESSION['user_id'];
+                $id     = (int)($_POST['id'] ?? 0);
+                $action = $_POST['action'] ?? 'note';
 
-                $success = $submissionModel->updateSubmissionStatus($id, $status, $score, $feedback, $reviewedBy);
-
-                if ($success) {
-                    header('Location: ?page=submission_detail&id=' . $id . '&success=Review submitted successfully');
+                if ($action === 'status') {
+                    // Status-only change (for Winners page classification)
+                    $allowed = ['pending', 'approved', 'rejected'];
+                    $status  = in_array($_POST['status'] ?? '', $allowed) ? $_POST['status'] : 'pending';
+                    $ok = $submissionModel->updateStatus($id, $status);
+                    $msg = $ok ? 'Status updated.' : 'Failed to update status.';
+                    $param = $ok ? 'success' : 'error';
                 } else {
-                    header('Location: ?page=submission_detail&id=' . $id . '&error=Failed to update submission');
+                    // Admin note for judges — never touches score
+                    $note = trim($_POST['note'] ?? '');
+                    $ok   = $submissionModel->saveAdminNote($id, $note ?: null, (int)$_SESSION['user_id']);
+                    $msg  = $ok ? 'Note saved.' : 'Failed to save note.';
+                    $param = $ok ? 'success' : 'error';
                 }
+                header('Location: ?page=submission_detail&id=' . $id . '&' . $param . '=' . urlencode($msg));
             } catch (Exception $e) {
-                header('Location: ?page=submissions&error=' . urlencode('Error updating submission: ' . $e->getMessage()));
+                header('Location: ?page=submissions&error=' . urlencode('Error: ' . $e->getMessage()));
             }
         } else {
             header('Location: ?page=submissions');

@@ -106,6 +106,15 @@
 
                 <div class="score-panel">
 
+                    <?php if (!empty($submission['admin_note'])): ?>
+                    <div style="background:#fffbeb; border-left:4px solid #f59e0b; border-radius:10px; padding:16px 20px;">
+                        <div style="font-size:12px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px;">
+                            <i class="fas fa-comment-alt"></i> Note from Administrator
+                        </div>
+                        <div style="color:#374151; font-size:14px; line-height:1.7;"><?php echo nl2br(htmlspecialchars($submission['admin_note'])); ?></div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php foreach ($criteria as $c):
                         $cid  = (int)$c['id'];
                         $max  = (int)$c['max_score'];
