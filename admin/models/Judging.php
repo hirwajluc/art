@@ -258,8 +258,10 @@ class Judging {
             if (!$judge) return ['success' => false, 'message' => 'Judge not found.'];
             // Hard delete — only reached when judge has 0 submitted evaluations
             $this->db->prepare("DELETE FROM admin_users WHERE id = ? AND role = 'jury'")->execute([$id]);
-            // Also clean up any draft evaluations they may have started
-            $this->db->prepare("DELETE FROM jury_evaluations WHERE judge_id = ? AND status = 'draft'")->execute([$id]);
+            // Clean up any draft evaluations (table may not exist if migration not run)
+            try {
+                $this->db->prepare("DELETE FROM jury_evaluations WHERE judge_id = ? AND status = 'draft'")->execute([$id]);
+            } catch (PDOException $e) { /* jury_evaluations table doesn't exist yet — ignore */ }
             $this->logActivity($adminId, 'JUDGE_DELETED', "Deleted judge: {$judge['username']}");
             return ['success' => true, 'message' => "Judge \"{$judge['username']}\" removed."];
         } catch (PDOException $e) {
