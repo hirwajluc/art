@@ -99,6 +99,9 @@
         <div class="modal-overlay" id="createModal">
             <div class="modal">
                 <h2><i class="fas fa-user-plus"></i> Add Judge Account</h2>
+                <p style="color:var(--gray); font-size:13px; margin-bottom:16px;">
+                    <i class="fas fa-envelope"></i> An invitation email will be sent to the judge so they can set their own password.
+                </p>
                 <form method="POST" action="?page=create_judge">
                     <div class="form-group">
                         <label class="form-label">Full Name *</label>
@@ -110,14 +113,10 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Email *</label>
-                        <input class="form-input" type="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Temporary Password *</label>
-                        <input class="form-input" type="password" name="password" required minlength="6" placeholder="Min. 6 characters">
+                        <input class="form-input" type="email" name="email" required placeholder="judge@example.com">
                     </div>
                     <div style="display:flex; gap:10px; margin-top:8px;">
-                        <button type="submit" class="btn btn-primary" style="flex:1;"><i class="fas fa-save"></i> Create Judge</button>
+                        <button type="submit" class="btn btn-primary" style="flex:1;"><i class="fas fa-paper-plane"></i> Create & Send Invite</button>
                         <button type="button" class="btn btn-secondary" onclick="closeModal('createModal')">Cancel</button>
                     </div>
                 </form>

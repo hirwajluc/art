@@ -45,7 +45,10 @@ switch($currentPage) {
         $pageTitle = 'Scoring Criteria';
         break;
     case 'judging_results':
-        $pageTitle = 'Results & Rankings';
+        $pageTitle = 'Jury Rankings';
+        break;
+    case 'winners':
+        $pageTitle = 'Approved Winners';
         break;
     case 'judge_dashboard':
         $pageTitle = 'My Artworks to Judge';

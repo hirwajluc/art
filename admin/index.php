@@ -13,7 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $page = $_GET['page'] ?? 'dashboard';
 
 // Define public pages that don't require authentication
-$publicPages = ['login', 'authenticate'];
+$publicPages = ['login', 'authenticate', 'set_password', 'do_set_password'];
 
 // SECURITY GATEWAY - Protect entire system
 if (!in_array($page, $publicPages)) {
@@ -606,14 +606,15 @@ switch ($page) {
             try {
                 $judging  = new Judging();
                 $username = trim($_POST['username'] ?? '');
-                $email    = trim($_POST['email'] ?? '');
-                $password = $_POST['password'] ?? '';
+                $email    = trim($_POST['email']    ?? '');
                 $fullName = trim($_POST['full_name'] ?? '');
-                if (empty($username) || empty($email) || empty($password) || empty($fullName)) {
+                if (empty($username) || empty($email) || empty($fullName)) {
                     header('Location: ?page=judges&error=' . urlencode('All fields are required.'));
                 } else {
-                    $result = $judging->createJudge($username, $email, $password, $fullName, (int)$_SESSION['user_id']);
-                    $param  = $result['success'] ? 'success' : 'error';
+                    $scheme  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                    $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+                    $result  = $judging->createJudge($username, $email, $fullName, (int)$_SESSION['user_id'], $baseUrl);
+                    $param   = $result['success'] ? 'success' : 'error';
                     header('Location: ?page=judges&' . $param . '=' . urlencode($result['message']));
                 }
             } catch (Exception $e) {
@@ -944,6 +945,72 @@ switch ($page) {
             }
         } else {
             header('Location: ?page=judge_dashboard');
+        }
+        exit; break;
+
+    // -----------------------------------------------------------------------
+    // Set Password (public — judge invitation flow)
+    // -----------------------------------------------------------------------
+    case 'set_password':
+        $token = trim($_GET['token'] ?? '');
+        $judge = null;
+        $tokenError = '';
+        if ($token) {
+            try {
+                require_once __DIR__ . '/config/database.php';
+                $database = new Database();
+                $db = $database->getConnection();
+                $stmt = $db->prepare("SELECT id, full_name, email FROM admin_users WHERE password_setup_token = ? AND token_expires_at > NOW() AND status = 'active'");
+                $stmt->execute([$token]);
+                $judge = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$judge) $tokenError = 'This link is invalid or has expired. Please ask the admin to resend your invitation.';
+            } catch (Exception $e) {
+                $tokenError = 'A system error occurred. Please try again later.';
+            }
+        } else {
+            $tokenError = 'No invitation token provided.';
+        }
+        $flashError = isset($_GET['error']) ? urldecode($_GET['error']) : '';
+        include __DIR__ . '/views/set_password.php';
+        break;
+
+    case 'do_set_password':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/config/database.php';
+            try {
+                $database = new Database();
+                $db = $database->getConnection();
+                $token    = trim($_POST['token'] ?? '');
+                $password = $_POST['password'] ?? '';
+                $confirm  = $_POST['confirm']  ?? '';
+
+                if (strlen($password) < 6) {
+                    header('Location: ?page=set_password&token=' . urlencode($token) . '&error=' . urlencode('Password must be at least 6 characters.'));
+                    exit;
+                }
+                if ($password !== $confirm) {
+                    header('Location: ?page=set_password&token=' . urlencode($token) . '&error=' . urlencode('Passwords do not match.'));
+                    exit;
+                }
+
+                $stmt = $db->prepare("SELECT id FROM admin_users WHERE password_setup_token = ? AND token_expires_at > NOW() AND status = 'active'");
+                $stmt->execute([$token]);
+                $judge = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$judge) {
+                    header('Location: ?page=set_password&token=' . urlencode($token) . '&error=' . urlencode('This link is invalid or expired.'));
+                    exit;
+                }
+
+                $hash = password_hash($password, PASSWORD_BCRYPT);
+                $upd  = $db->prepare("UPDATE admin_users SET password = ?, password_setup_token = NULL, token_expires_at = NULL WHERE id = ?");
+                $upd->execute([$hash, $judge['id']]);
+                header('Location: login.php?message=' . urlencode('Password set successfully. You can now log in.'));
+            } catch (Exception $e) {
+                header('Location: ?page=set_password&error=' . urlencode('System error. Please try again.'));
+            }
+        } else {
+            header('Location: login.php');
         }
         exit; break;
 

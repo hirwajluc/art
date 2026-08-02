@@ -129,6 +129,16 @@ jstep('Verify admin_activity_logs table exists', function() use ($pdo) {
     return 'Already exists';
 });
 
+// ── 6. Add password_setup_token columns to admin_users ────────────────────────
+jstep('Add password_setup_token columns to admin_users', function() use ($pdo) {
+    $col = $pdo->query("SHOW COLUMNS FROM admin_users LIKE 'password_setup_token'")->fetchAll();
+    if (empty($col)) {
+        $pdo->exec("ALTER TABLE admin_users ADD COLUMN password_setup_token VARCHAR(64) NULL, ADD COLUMN token_expires_at DATETIME NULL");
+        return 'Columns added';
+    }
+    return 'Already exists — skipped';
+});
+
 // ── Write lock ────────────────────────────────────────────────────────────────
 if (empty($errors)) {
     @file_put_contents($lockFile, date('Y-m-d H:i:s') . "\n");

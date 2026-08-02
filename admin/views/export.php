@@ -25,21 +25,13 @@
                         </div>
                         <div class="card-content">
                             <p>Export all registration data including participant details, categories, and registration dates.</p>
-                            <div class="export-options">
-                                <label>
-                                    <input type="radio" name="reg_format" value="csv" checked> CSV Format
-                                </label>
-                                <label>
-                                    <input type="radio" name="reg_format" value="excel"> Excel Format
-                                </label>
-                                <label>
-                                    <input type="radio" name="reg_format" value="pdf"> PDF Report
-                                </label>
+                            <div class="export-options" style="color:var(--gray); font-size:13px;">
+                                <i class="fas fa-file-csv"></i> CSV format
                             </div>
-                            <button class="btn btn-primary" onclick="exportData('registrations')">
+                            <a href="?page=export&type=registrations" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;">
                                 <i class="fas fa-download"></i>
-                                Export Registrations
-                            </button>
+                                Download Registrations CSV
+                            </a>
                         </div>
                     </div>
 
@@ -50,62 +42,45 @@
                         </div>
                         <div class="card-content">
                             <p>Export submission data including artwork details, scores, and review status.</p>
-                            <div class="export-options">
-                                <label>
-                                    <input type="radio" name="sub_format" value="csv" checked> CSV Format
-                                </label>
-                                <label>
-                                    <input type="radio" name="sub_format" value="excel"> Excel Format
-                                </label>
-                                <label>
-                                    <input type="radio" name="sub_format" value="pdf"> PDF Report
-                                </label>
+                            <div class="export-options" style="color:var(--gray); font-size:13px;">
+                                <i class="fas fa-file-csv"></i> CSV format
                             </div>
-                            <button class="btn btn-success" onclick="exportData('submissions')">
+                            <a href="?page=export&type=submissions" class="btn btn-success" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;">
                                 <i class="fas fa-download"></i>
-                                Export Submissions
-                            </button>
+                                Download Submissions CSV
+                            </a>
                         </div>
                     </div>
 
-                    <!-- Analytics Export -->
+                    <!-- Jury Results Export -->
                     <div class="export-card">
                         <div class="card-header">
-                            <h3><i class="fas fa-chart-bar"></i> Export Analytics</h3>
+                            <h3><i class="fas fa-trophy"></i> Export Jury Results</h3>
                         </div>
                         <div class="card-content">
-                            <p>Export dashboard statistics and analytics data for reporting purposes.</p>
-                            <div class="export-options">
-                                <label>
-                                    <input type="radio" name="analytics_format" value="pdf" checked> PDF Report
-                                </label>
-                                <label>
-                                    <input type="radio" name="analytics_format" value="csv"> CSV Data
-                                </label>
+                            <p>Download jury evaluation results including rankings, average scores, and judge counts.</p>
+                            <div class="export-options" style="color:var(--gray); font-size:13px;">
+                                <i class="fas fa-file-csv"></i> CSV format
                             </div>
-                            <button class="btn btn-warning" onclick="exportData('analytics')">
+                            <a href="?page=judging_results&export=csv" class="btn btn-warning" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none; margin-top:16px;">
                                 <i class="fas fa-download"></i>
-                                Export Analytics
-                            </button>
+                                Download Jury Results CSV
+                            </a>
                         </div>
                     </div>
 
-                    <!-- Complete Export -->
+                    <!-- Quick Stats -->
                     <div class="export-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-database"></i> Complete Export</h3>
+                        <div class="card-header" style="background: linear-gradient(135deg,#6c757d,#495057);">
+                            <h3><i class="fas fa-chart-bar"></i> Quick Statistics</h3>
                         </div>
                         <div class="card-content">
-                            <p>Export all competition data in a comprehensive package including files and database.</p>
-                            <div class="export-options">
-                                <label>
-                                    <input type="radio" name="complete_format" value="zip" checked> ZIP Archive
-                                </label>
-                            </div>
-                            <button class="btn btn-danger" onclick="exportData('complete')">
-                                <i class="fas fa-download"></i>
-                                Export All Data
-                            </button>
+                            <p>Current competition snapshot:</p>
+                            <ul style="margin:0 0 16px; padding-left:18px; color:var(--dark); line-height:2;">
+                                <li><strong><?php echo $totalRegs ?? 0; ?></strong> registrations</li>
+                                <li><strong><?php echo $totalSubs ?? 0; ?></strong> submissions</li>
+                            </ul>
+                            <p style="color:var(--gray); font-size:13px;">Use the Registrations and Submissions exports above to download the full data.</p>
                         </div>
                     </div>
                 </div>
@@ -113,31 +88,6 @@
         </main>
     </div>
 
-    <script>
-        function exportData(type) {
-            // Get selected format
-            let format = 'csv';
-            const formatInputs = document.querySelectorAll(`input[name="${type}_format"]:checked`);
-            if (formatInputs.length > 0) {
-                format = formatInputs[0].value;
-            }
-
-            // Show loading
-            const button = event.target;
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
-            button.disabled = true;
-
-            // Simulate export process
-            setTimeout(() => {
-                alert(`Exporting ${type} in ${format} format...\n\nNote: This is a demo. In production, this would generate and download the actual file.`);
-                
-                // Reset button
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }, 2000);
-        }
-    </script>
 
     <style>
         .export-container {

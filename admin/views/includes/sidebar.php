@@ -50,7 +50,7 @@ $isAdmin = ($currentUser['role'] === 'admin');
         </li>
         <li class="nav-item">
             <a href="?page=judging_results" class="nav-link <?php echo $currentPage === 'judging_results' ? 'active' : ''; ?>">
-                <i class="fas fa-trophy"></i> Results &amp; Rankings
+                <i class="fas fa-chart-bar"></i> Jury Rankings
             </a>
         </li>
 
@@ -59,7 +59,7 @@ $isAdmin = ($currentUser['role'] === 'admin');
         </li>
         <li class="nav-item">
             <a href="?page=winners" class="nav-link <?php echo $currentPage === 'winners' ? 'active' : ''; ?>">
-                <i class="fas fa-medal"></i> Winners
+                <i class="fas fa-medal"></i> Approved Winners
             </a>
         </li>
         <li class="nav-item">

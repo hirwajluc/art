@@ -118,21 +118,62 @@ class Judging {
         }
     }
 
-    public function createJudge(string $username, string $email, string $password, string $fullName, int $adminId): array {
+    public function createJudge(string $username, string $email, string $fullName, int $adminId, string $baseUrl = ''): array {
         try {
+            // Ensure token columns exist (added in migration step 6)
+            try {
+                $cols = $this->db->query("SHOW COLUMNS FROM admin_users LIKE 'password_setup_token'")->fetchAll();
+                if (empty($cols)) {
+                    $this->db->exec("ALTER TABLE admin_users ADD COLUMN password_setup_token VARCHAR(64) NULL, ADD COLUMN token_expires_at DATETIME NULL");
+                }
+            } catch (PDOException $e) { /* already exists or no permission — continue */ }
+
             $stmt = $this->db->prepare("SELECT id FROM admin_users WHERE username = ? OR email = ?");
             $stmt->execute([$username, $email]);
             if ($stmt->fetch()) {
                 return ['success' => false, 'message' => 'Username or email already exists.'];
             }
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+            // Generate setup token (48-hour expiry) — placeholder password until judge sets one
+            $token   = bin2hex(random_bytes(32));
+            $expires = date('Y-m-d H:i:s', time() + 48 * 3600);
+            $placeholder = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+
             $stmt = $this->db->prepare("
-                INSERT INTO admin_users (username, email, password, full_name, role, status)
-                VALUES (?, ?, ?, ?, 'jury', 'active')
+                INSERT INTO admin_users (username, email, password, full_name, role, status, password_setup_token, token_expires_at)
+                VALUES (?, ?, ?, ?, 'jury', 'active', ?, ?)
             ");
-            $stmt->execute([$username, $email, $hashed, $fullName]);
-            $this->logActivity($adminId, 'JUDGE_CREATED', "Created judge account: $username");
-            return ['success' => true, 'message' => 'Judge account created successfully.'];
+            $stmt->execute([$username, $email, $placeholder, $fullName, $token, $expires]);
+
+            // Send invitation email
+            $setupLink  = rtrim($baseUrl, '/') . '/admin/?page=set_password&token=' . $token;
+            $fromName   = 'GREATER Art Competition';
+            $fromEmail  = 'info@greaterproject.eu';
+            $subject    = 'You have been invited as a judge — GREATER Art Competition';
+            $body       = "Hello {$fullName},\r\n\r\n"
+                        . "You have been invited to serve as a judge for the GREATER Art Competition.\r\n\r\n"
+                        . "Your login username is: {$username}\r\n\r\n"
+                        . "Please click the link below to set your password (valid for 48 hours):\r\n"
+                        . "{$setupLink}\r\n\r\n"
+                        . "If you did not expect this invitation, please ignore this email.\r\n\r\n"
+                        . "Best regards,\r\nGREATER Art Competition Team";
+            $htmlBody   = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">'
+                        . '<h2 style="color:#1E90FF;">GREATER Art Competition</h2>'
+                        . '<p>Hello <strong>' . htmlspecialchars($fullName) . '</strong>,</p>'
+                        . '<p>You have been invited to serve as a judge for the GREATER Art Competition.</p>'
+                        . '<p><strong>Username:</strong> ' . htmlspecialchars($username) . '</p>'
+                        . '<p>Please set your password by clicking the button below (link valid for 48 hours):</p>'
+                        . '<p style="text-align:center;margin:30px 0;">'
+                        . '<a href="' . htmlspecialchars($setupLink) . '" style="background:#1E90FF;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Set My Password</a>'
+                        . '</p>'
+                        . '<p style="font-size:12px;color:#999;">If the button doesn\'t work, copy this link into your browser:<br>' . htmlspecialchars($setupLink) . '</p>'
+                        . '</div>';
+            $headers  = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n";
+            $headers .= "From: {$fromName} <{$fromEmail}>\r\nReply-To: {$fromEmail}\r\n";
+            @mail($email, $subject, $htmlBody, $headers);
+
+            $this->logActivity($adminId, 'JUDGE_CREATED', "Created judge account: $username — invite sent to $email");
+            return ['success' => true, 'message' => "Judge account created. An invitation email has been sent to {$email}.", 'token' => $token];
         } catch (PDOException $e) {
             error_log("Judging::createJudge — " . $e->getMessage());
             return ['success' => false, 'message' => 'Database error creating judge.'];
@@ -584,11 +625,19 @@ class Judging {
     }
 
     public function getAdminResultStats(): array {
+        // Query submissions count first — this table always exists
+        $totalSubs = 0;
+        try {
+            $totalSubs = (int)$this->db->query("SELECT COUNT(*) FROM submissions")->fetchColumn();
+        } catch (PDOException $e) { /* ignore */ }
+
+        // Query jury-specific stats separately — jury tables may not exist yet (migration pending)
+        $totalEvals   = 0;
+        $complete     = 0;
+        $activeJudges = 0;
         try {
             $activeJudges = $this->countActiveJudges();
-            $totalSubs    = (int)$this->db->query("SELECT COUNT(*) FROM submissions")->fetchColumn();
             $totalEvals   = (int)$this->db->query("SELECT COUNT(*) FROM jury_evaluations WHERE status = 'submitted'")->fetchColumn();
-            $complete     = 0;
             if ($activeJudges > 0) {
                 $stmt = $this->db->prepare("
                     SELECT COUNT(*) FROM (
@@ -601,16 +650,15 @@ class Judging {
                 $stmt->execute([$activeJudges]);
                 $complete = (int)$stmt->fetchColumn();
             }
-            return [
-                'total_submissions'  => $totalSubs,
-                'total_evaluations'  => $totalEvals,
-                'complete_artworks'  => $complete,
-                'pending_artworks'   => $totalSubs - $complete,
-                'active_judges'      => $activeJudges,
-            ];
-        } catch (PDOException $e) {
-            return ['total_submissions' => 0, 'total_evaluations' => 0, 'complete_artworks' => 0, 'pending_artworks' => 0, 'active_judges' => 0];
-        }
+        } catch (PDOException $e) { /* jury tables not yet created — leave at 0 */ }
+
+        return [
+            'total_submissions'  => $totalSubs,
+            'total_evaluations'  => $totalEvals,
+            'complete_artworks'  => $complete,
+            'pending_artworks'   => $totalSubs - $complete,
+            'active_judges'      => $activeJudges,
+        ];
     }
 
     // ── Audit Logging ─────────────────────────────────────────────────────────
