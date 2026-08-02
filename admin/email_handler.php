@@ -100,7 +100,7 @@ foreach ($recipients as $recipient) {
     $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
     $headers .= "X-Campaign-Type: {$type}\r\n";
 
-    $mailSent = @mail($recipEmail, $subject, $htmlBody, $headers, '-f no_reply@greaterproject.eu');
+    $mailSent = @mail($recipEmail, $subject, $htmlBody, $headers);
     if ($mailSent) {
         $sentCount++;
     } else {

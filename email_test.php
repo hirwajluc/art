@@ -69,18 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ok = false;
         }
 
-        // Check mail queue
-        $queue = shell_exec('mailq 2>/dev/null | head -20') ?? 'mailq not available';
-        $log[] = "📬 Mail queue:\n" . $queue;
-
-        // Check mail log last lines
-        foreach (['/var/log/mail.log', '/var/log/maillog', '/var/log/syslog'] as $logfile) {
-            if (is_readable($logfile)) {
-                $lines = shell_exec("tail -20 {$logfile} 2>/dev/null");
-                $log[] = "📋 {$logfile} (last 20 lines):\n" . $lines;
-                break;
-            }
-        }
+        $log[] = "📌 sendmail_path: " . ini_get('sendmail_path');
+        $log[] = "📌 SMTP (php.ini): " . ini_get('SMTP');
+        $log[] = "📌 smtp_port: " . ini_get('smtp_port');
     }
 }
 ?>
