@@ -177,35 +177,43 @@ class Judging {
             ");
             $stmt->execute([$username, $email, $placeholder, $fullName, $token, $expires]);
 
-            // Send invitation email
-            $setupLink  = rtrim($baseUrl, '/') . '/admin/?page=set_password&token=' . $token;
-            $fromName   = 'GREATER Art Competition';
-            $fromEmail  = 'info@greaterproject.eu';
-            $subject    = 'You have been invited as a judge — GREATER Art Competition';
-            $body       = "Hello {$fullName},\r\n\r\n"
-                        . "You have been invited to serve as a judge for the GREATER Art Competition.\r\n\r\n"
-                        . "Your login username is: {$username}\r\n\r\n"
-                        . "Please click the link below to set your password (valid for 48 hours):\r\n"
-                        . "{$setupLink}\r\n\r\n"
-                        . "If you did not expect this invitation, please ignore this email.\r\n\r\n"
-                        . "Best regards,\r\nGREATER Art Competition Team";
-            $htmlBody   = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">'
-                        . '<h2 style="color:#1E90FF;">GREATER Art Competition</h2>'
-                        . '<p>Hello <strong>' . htmlspecialchars($fullName) . '</strong>,</p>'
-                        . '<p>You have been invited to serve as a judge for the GREATER Art Competition.</p>'
-                        . '<p><strong>Username:</strong> ' . htmlspecialchars($username) . '</p>'
-                        . '<p>Please set your password by clicking the button below (link valid for 48 hours):</p>'
-                        . '<p style="text-align:center;margin:30px 0;">'
-                        . '<a href="' . htmlspecialchars($setupLink) . '" style="background:#1E90FF;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Set My Password</a>'
-                        . '</p>'
-                        . '<p style="font-size:12px;color:#999;">If the button doesn\'t work, copy this link into your browser:<br>' . htmlspecialchars($setupLink) . '</p>'
-                        . '</div>';
-            $headers  = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n";
-            $headers .= "From: {$fromName} <{$fromEmail}>\r\nReply-To: {$fromEmail}\r\n";
-            @mail($email, $subject, $htmlBody, $headers);
+            // Send invitation email via SMTP
+            $setupLink = rtrim($baseUrl, '/') . '/admin/?page=set_password&token=' . $token;
+            $subject   = 'You have been invited as a judge — GREATER Art Competition';
+            $htmlBody  = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">'
+                       . '<h2 style="color:#1E90FF;">GREATER Art Competition</h2>'
+                       . '<p>Hello <strong>' . htmlspecialchars($fullName) . '</strong>,</p>'
+                       . '<p>You have been invited to serve as a judge for the GREATER Art Competition.</p>'
+                       . '<p><strong>Username:</strong> ' . htmlspecialchars($username) . '</p>'
+                       . '<p>Please set your password by clicking the button below (link valid for 48 hours):</p>'
+                       . '<p style="text-align:center;margin:30px 0;">'
+                       . '<a href="' . htmlspecialchars($setupLink) . '" style="background:#1E90FF;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Set My Password</a>'
+                       . '</p>'
+                       . '<p style="font-size:12px;color:#999;">If the button doesn\'t work, copy this link into your browser:<br>' . htmlspecialchars($setupLink) . '</p>'
+                       . '</div>';
+
+            $emailSent = false;
+            $emailError = '';
+            try {
+                require_once __DIR__ . '/../helpers/Mailer.php';
+                $mailer = Mailer::fromDB($this->db);
+                $result = $mailer->send($email, $fullName, $subject, $htmlBody);
+                if ($result === true) {
+                    $emailSent = true;
+                } else {
+                    $emailError = $result;
+                    error_log("[Judging::createJudge] Email failed: $emailError");
+                }
+            } catch (Exception $me) {
+                $emailError = $me->getMessage();
+                error_log("[Judging::createJudge] Mailer exception: $emailError");
+            }
 
             $this->logActivity($adminId, 'JUDGE_CREATED', "Created judge account: $username — invite sent to $email");
-            return ['success' => true, 'message' => "Judge account created. An invitation email has been sent to {$email}.", 'token' => $token];
+            $msg = $emailSent
+                 ? "Judge account created. An invitation email has been sent to {$email}."
+                 : "Judge account created. Email could not be sent ({$emailError}) — share the invite link below manually.";
+            return ['success' => true, 'message' => $msg, 'token' => $token];
         } catch (PDOException $e) {
             error_log("Judging::createJudge — " . $e->getMessage());
             return ['success' => false, 'message' => 'Database error creating judge.'];

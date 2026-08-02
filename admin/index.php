@@ -74,7 +74,7 @@ $judgePages = ['judge_dashboard', 'judge_evaluate', 'judge_save'];
 $adminOnlyPages = [
     'registrations', 'registration_detail', 'submissions', 'submission_detail',
     'update_submission', 'winners', 'export', 'email_campaigns', 'email_send',
-    'settings', 'save_settings', 'submission_versions',
+    'settings', 'save_settings', 'send_test_email', 'submission_versions',
     'judges', 'create_judge', 'edit_judge', 'delete_judge', 'toggle_judge', 'reset_judge_password',
     'judging_criteria', 'save_criteria', 'judging_results', 'reopen_evaluation',
 ];
@@ -440,7 +440,11 @@ switch ($page) {
                 $database = new Database();
                 $db = $database->getConnection();
 
-                $allowed = ['registration_deadline', 'submission_deadline', 'competition_title', 'winner_announcement'];
+                $allowed = [
+                    'registration_deadline', 'submission_deadline', 'competition_title', 'winner_announcement',
+                    'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_encryption',
+                    'smtp_from_email', 'smtp_from_name',
+                ];
                 $stmt = $db->prepare("
                     INSERT INTO competition_settings (setting_key, setting_value, updated_at, updated_by)
                     VALUES (?, ?, NOW(), ?)
@@ -467,6 +471,33 @@ switch ($page) {
         }
         exit;
         break;
+
+    // -----------------------------------------------------------------------
+    // Send test email
+    // -----------------------------------------------------------------------
+    case 'send_test_email':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/helpers/Mailer.php';
+        try {
+            $database = new Database();
+            $db = $database->getConnection();
+            $mailer = Mailer::fromDB($db);
+            $toEmail = $_SESSION['user_email'] ?? 'admin@greaterproject.eu';
+            $result  = $mailer->send(
+                $toEmail,
+                $_SESSION['user_full_name'] ?? 'Admin',
+                'GREATER — SMTP Test Email',
+                '<p>This is a test email from the GREATER Art Competition admin panel.</p><p>If you received this, your SMTP configuration is working correctly.</p>'
+            );
+            if ($result === true) {
+                header('Location: ?page=settings&success=' . urlencode('Test email sent successfully to ' . $toEmail));
+            } else {
+                header('Location: ?page=settings&error=' . urlencode('SMTP error: ' . $result));
+            }
+        } catch (Exception $e) {
+            header('Location: ?page=settings&error=' . urlencode('Error: ' . $e->getMessage()));
+        }
+        exit; break;
 
     // -----------------------------------------------------------------------
     // Winners
