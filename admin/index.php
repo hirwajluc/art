@@ -67,6 +67,37 @@ if (defined('ADMIN_INDEX_LOADED')) {
 }
 define('ADMIN_INDEX_LOADED', true);
 
+// ── Role-based routing ────────────────────────────────────────────────────────
+// Pages only judges (jury) may access
+$judgePages = ['judge_dashboard', 'judge_evaluate', 'judge_save'];
+// Pages only admins may access
+$adminOnlyPages = [
+    'registrations', 'registration_detail', 'submissions', 'submission_detail',
+    'update_submission', 'winners', 'export', 'email_campaigns', 'email_send',
+    'settings', 'save_settings', 'submission_versions',
+    'judges', 'create_judge', 'edit_judge', 'delete_judge', 'toggle_judge', 'reset_judge_password',
+    'judging_criteria', 'save_criteria', 'judging_results', 'reopen_evaluation',
+];
+
+if (!in_array($page, $publicPages)) {
+    $userRole = $_SESSION['user_role'] ?? 'jury';
+    // Jury users may only access judge pages + dashboard (which redirects them)
+    if ($userRole === 'jury' && !in_array($page, $judgePages) && $page !== 'dashboard') {
+        header('Location: ?page=judge_dashboard');
+        exit;
+    }
+    // Non-admins cannot access admin-only pages
+    if ($userRole !== 'admin' && in_array($page, $adminOnlyPages)) {
+        header('Location: ?page=judge_dashboard');
+        exit;
+    }
+    // Redirect jury users landing on admin dashboard → judge dashboard
+    if ($userRole === 'jury' && $page === 'dashboard') {
+        header('Location: ?page=judge_dashboard');
+        exit;
+    }
+}
+
 // Router - All routes are now secure
 switch ($page) {
     case 'login':
@@ -545,6 +576,376 @@ switch ($page) {
         }
         exit;
         break;
+
+    // -----------------------------------------------------------------------
+    // Judge Management (admin only)
+    // -----------------------------------------------------------------------
+    case 'judges':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
+        try {
+            $judging = new Judging();
+            $judges  = $judging->getJudges();
+            $currentUser = [
+                'id' => $_SESSION['user_id'], 'full_name' => $_SESSION['user_full_name'] ?? 'Admin',
+                'email' => $_SESSION['user_email'] ?? '', 'role' => $_SESSION['user_role'] ?? 'admin',
+            ];
+            $currentPage  = 'judges';
+            $flashSuccess = isset($_GET['success']) ? urldecode($_GET['success']) : '';
+            $flashError   = isset($_GET['error'])   ? urldecode($_GET['error'])   : '';
+            include __DIR__ . '/views/judges.php';
+        } catch (Exception $e) {
+            header('Location: ?page=judges&error=' . urlencode('Error: ' . $e->getMessage()));
+        }
+        break;
+
+    case 'create_judge':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/config/database.php';
+            require_once __DIR__ . '/models/Judging.php';
+            try {
+                $judging  = new Judging();
+                $username = trim($_POST['username'] ?? '');
+                $email    = trim($_POST['email'] ?? '');
+                $password = $_POST['password'] ?? '';
+                $fullName = trim($_POST['full_name'] ?? '');
+                if (empty($username) || empty($email) || empty($password) || empty($fullName)) {
+                    header('Location: ?page=judges&error=' . urlencode('All fields are required.'));
+                } else {
+                    $result = $judging->createJudge($username, $email, $password, $fullName, (int)$_SESSION['user_id']);
+                    $param  = $result['success'] ? 'success' : 'error';
+                    header('Location: ?page=judges&' . $param . '=' . urlencode($result['message']));
+                }
+            } catch (Exception $e) {
+                header('Location: ?page=judges&error=' . urlencode('Error: ' . $e->getMessage()));
+            }
+        } else {
+            header('Location: ?page=judges');
+        }
+        exit; break;
+
+    case 'edit_judge':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/config/database.php';
+            require_once __DIR__ . '/models/Judging.php';
+            try {
+                $judging  = new Judging();
+                $id       = (int)($_POST['id'] ?? 0);
+                $fullName = trim($_POST['full_name'] ?? '');
+                $email    = trim($_POST['email'] ?? '');
+                if (!$id || empty($fullName) || empty($email)) {
+                    header('Location: ?page=judges&error=' . urlencode('All fields are required.'));
+                } else {
+                    $result = $judging->updateJudge($id, $fullName, $email, (int)$_SESSION['user_id']);
+                    $param  = $result['success'] ? 'success' : 'error';
+                    header('Location: ?page=judges&' . $param . '=' . urlencode($result['message']));
+                }
+            } catch (Exception $e) {
+                header('Location: ?page=judges&error=' . urlencode('Error: ' . $e->getMessage()));
+            }
+        } else {
+            header('Location: ?page=judges');
+        }
+        exit; break;
+
+    case 'toggle_judge':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
+        try {
+            $judging = new Judging();
+            $id      = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+            $result  = $judging->toggleJudgeStatus($id, (int)$_SESSION['user_id']);
+            $param   = $result['success'] ? 'success' : 'error';
+            header('Location: ?page=judges&' . $param . '=' . urlencode($result['message']));
+        } catch (Exception $e) {
+            header('Location: ?page=judges&error=' . urlencode('Error: ' . $e->getMessage()));
+        }
+        exit; break;
+
+    case 'reset_judge_password':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/config/database.php';
+            require_once __DIR__ . '/models/Judging.php';
+            try {
+                $judging  = new Judging();
+                $id       = (int)($_POST['id'] ?? 0);
+                $password = $_POST['new_password'] ?? '';
+                if (!$id || strlen($password) < 6) {
+                    header('Location: ?page=judges&error=' . urlencode('Password must be at least 6 characters.'));
+                } else {
+                    $result = $judging->resetJudgePassword($id, $password, (int)$_SESSION['user_id']);
+                    $param  = $result['success'] ? 'success' : 'error';
+                    header('Location: ?page=judges&' . $param . '=' . urlencode($result['message']));
+                }
+            } catch (Exception $e) {
+                header('Location: ?page=judges&error=' . urlencode('Error: ' . $e->getMessage()));
+            }
+        } else {
+            header('Location: ?page=judges');
+        }
+        exit; break;
+
+    case 'delete_judge':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
+        try {
+            $judging = new Judging();
+            $id      = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+            $result  = $judging->deleteJudge($id, (int)$_SESSION['user_id']);
+            $param   = $result['success'] ? 'success' : 'error';
+            header('Location: ?page=judges&' . $param . '=' . urlencode($result['message']));
+        } catch (Exception $e) {
+            header('Location: ?page=judges&error=' . urlencode('Error: ' . $e->getMessage()));
+        }
+        exit; break;
+
+    // -----------------------------------------------------------------------
+    // Judging Criteria (admin only)
+    // -----------------------------------------------------------------------
+    case 'judging_criteria':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
+        try {
+            $judging  = new Judging();
+            $criteria = $judging->getCriteria(false); // all, including inactive
+            $currentUser = [
+                'id' => $_SESSION['user_id'], 'full_name' => $_SESSION['user_full_name'] ?? 'Admin',
+                'email' => $_SESSION['user_email'] ?? '', 'role' => $_SESSION['user_role'] ?? 'admin',
+            ];
+            $currentPage  = 'judging_criteria';
+            $flashSuccess = isset($_GET['success']) ? urldecode($_GET['success']) : '';
+            $flashError   = isset($_GET['error'])   ? urldecode($_GET['error'])   : '';
+            include __DIR__ . '/views/judging_criteria.php';
+        } catch (Exception $e) {
+            echo "Error loading criteria: " . htmlspecialchars($e->getMessage());
+        }
+        break;
+
+    case 'save_criteria':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/config/database.php';
+            require_once __DIR__ . '/models/Judging.php';
+            try {
+                $judging  = new Judging();
+                $names    = $_POST['name']        ?? [];
+                $descs    = $_POST['description'] ?? [];
+                $maxes    = $_POST['max_score']   ?? [];
+                $ids      = $_POST['criterion_id'] ?? [];
+                $criteria = [];
+                foreach ($names as $i => $name) {
+                    if (!empty(trim($name))) {
+                        $criteria[] = [
+                            'id'          => !empty($ids[$i]) ? (int)$ids[$i] : null,
+                            'name'        => $name,
+                            'description' => $descs[$i] ?? '',
+                            'max_score'   => $maxes[$i] ?? 20,
+                        ];
+                    }
+                }
+                if (empty($criteria)) {
+                    header('Location: ?page=judging_criteria&error=' . urlencode('At least one criterion is required.'));
+                } else {
+                    $ok = $judging->saveCriteria($criteria, (int)$_SESSION['user_id']);
+                    if ($ok) header('Location: ?page=judging_criteria&success=' . urlencode('Scoring criteria saved successfully.'));
+                    else     header('Location: ?page=judging_criteria&error='   . urlencode('Failed to save criteria.'));
+                }
+            } catch (Exception $e) {
+                header('Location: ?page=judging_criteria&error=' . urlencode('Error: ' . $e->getMessage()));
+            }
+        } else {
+            header('Location: ?page=judging_criteria');
+        }
+        exit; break;
+
+    // -----------------------------------------------------------------------
+    // Judging Results (admin only)
+    // -----------------------------------------------------------------------
+    case 'judging_results':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
+        try {
+            $judging  = new Judging();
+            $catFilter    = trim($_GET['category'] ?? '');
+            $searchFilter = trim($_GET['search']   ?? '');
+            $results      = $judging->getResults($catFilter, $searchFilter);
+            $resultStats  = $judging->getAdminResultStats();
+            $criteria     = $judging->getCriteria();
+
+            // If viewing a specific submission detail
+            $detailId         = isset($_GET['detail']) ? (int)$_GET['detail'] : 0;
+            $detailEvaluations = [];
+            $detailSubmission  = null;
+            $criterionAverages = [];
+            if ($detailId > 0) {
+                $detailSubmission  = $judging->getAnonymousSubmission($detailId);
+                $detailEvaluations = $judging->getSubmissionResultDetail($detailId);
+                $criterionAverages = $judging->getCriterionAverages($detailId);
+            }
+
+            // CSV export
+            if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+                header('Content-Type: text/csv; charset=UTF-8');
+                header('Content-Disposition: attachment; filename="judging_results_' . date('Y-m-d') . '.csv"');
+                $out = fopen('php://output', 'w');
+                fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+                fputcsv($out, ['Rank','Competition Code','Artwork Title','Category','Judges Submitted','Average Score','Max Score','Min Score','Status']);
+                foreach ($results as $r) {
+                    fputcsv($out, [
+                        $r['rank'] ?? '-',
+                        $r['competition_code'],
+                        $r['artwork_name'],
+                        getCategoryName($r['category']),
+                        $r['judges_submitted'] . '/' . $r['active_judges'],
+                        $r['avg_score'] ?? '-',
+                        $r['max_score'] ?? '-',
+                        $r['min_score'] ?? '-',
+                        $r['is_complete'] ? 'Complete' : 'In Progress',
+                    ]);
+                }
+                fclose($out);
+                exit;
+            }
+
+            $currentUser = [
+                'id' => $_SESSION['user_id'], 'full_name' => $_SESSION['user_full_name'] ?? 'Admin',
+                'email' => $_SESSION['user_email'] ?? '', 'role' => $_SESSION['user_role'] ?? 'admin',
+            ];
+            $currentPage = 'judging_results';
+            include __DIR__ . '/views/judging_results.php';
+        } catch (Exception $e) {
+            echo "Error loading results: " . htmlspecialchars($e->getMessage());
+        }
+        break;
+
+    case 'reopen_evaluation':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
+        try {
+            $judging = new Judging();
+            $evalId  = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+            $backTo  = (int)($_GET['submission'] ?? 0);
+            $result  = $judging->reopenEvaluation($evalId, (int)$_SESSION['user_id']);
+            $param   = $result['success'] ? 'success' : 'error';
+            $dest    = $backTo > 0 ? "?page=judging_results&detail=$backTo" : '?page=judging_results';
+            header('Location: ' . $dest . '&' . $param . '=' . urlencode($result['message']));
+        } catch (Exception $e) {
+            header('Location: ?page=judging_results&error=' . urlencode('Error: ' . $e->getMessage()));
+        }
+        exit; break;
+
+    // -----------------------------------------------------------------------
+    // Judge Dashboard (jury role only)
+    // -----------------------------------------------------------------------
+    case 'judge_dashboard':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
+        try {
+            $judging  = new Judging();
+            $judgeId  = (int)$_SESSION['user_id'];
+            $search   = trim($_GET['search']   ?? '');
+            $catFilter  = trim($_GET['category'] ?? '');
+            $evalFilter = trim($_GET['status']   ?? '');
+            $submissions = $judging->getSubmissionsForJudge($judgeId, $search, $catFilter, $evalFilter);
+            $stats       = $judging->getJudgeStats($judgeId);
+            $currentUser = [
+                'id' => $judgeId, 'full_name' => $_SESSION['user_full_name'] ?? 'Judge',
+                'email' => $_SESSION['user_email'] ?? '', 'role' => 'jury',
+                'username' => $_SESSION['user_username'] ?? 'judge',
+            ];
+            $currentPage  = 'judge_dashboard';
+            $flashSuccess = isset($_GET['success']) ? urldecode($_GET['success']) : '';
+            $flashError   = isset($_GET['error'])   ? urldecode($_GET['error'])   : '';
+            include __DIR__ . '/views/judge_dashboard.php';
+        } catch (Exception $e) {
+            echo "Error loading judge dashboard: " . htmlspecialchars($e->getMessage());
+        }
+        break;
+
+    // -----------------------------------------------------------------------
+    // Judge Evaluate (jury role only)
+    // -----------------------------------------------------------------------
+    case 'judge_evaluate':
+        require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
+        try {
+            $judging      = new Judging();
+            $judgeId      = (int)$_SESSION['user_id'];
+            $submissionId = (int)($_GET['id'] ?? 0);
+
+            if ($submissionId <= 0) {
+                header('Location: ?page=judge_dashboard&error=' . urlencode('Invalid artwork.'));
+                exit;
+            }
+
+            $submission = $judging->getAnonymousSubmission($submissionId);
+            if (!$submission) {
+                header('Location: ?page=judge_dashboard&error=' . urlencode('Artwork not found.'));
+                exit;
+            }
+
+            $criteria   = $judging->getCriteria();
+            $evaluation = $judging->getEvaluation($submissionId, $judgeId);
+            $scores     = [];
+            if ($evaluation) {
+                foreach ($judging->getScores($evaluation['id']) as $s) {
+                    $scores[$s['criterion_id']] = $s['score'];
+                }
+            }
+
+            $currentUser = [
+                'id' => $judgeId, 'full_name' => $_SESSION['user_full_name'] ?? 'Judge',
+                'email' => $_SESSION['user_email'] ?? '', 'role' => 'jury',
+                'username' => $_SESSION['user_username'] ?? 'judge',
+            ];
+            $currentPage  = 'judge_evaluate';
+            $flashSuccess = isset($_GET['success']) ? urldecode($_GET['success']) : '';
+            $flashError   = isset($_GET['error'])   ? urldecode($_GET['error'])   : '';
+            include __DIR__ . '/views/judge_evaluate.php';
+        } catch (Exception $e) {
+            echo "Error loading evaluation form: " . htmlspecialchars($e->getMessage());
+        }
+        break;
+
+    // -----------------------------------------------------------------------
+    // Judge Save (draft or final submit — jury role only)
+    // -----------------------------------------------------------------------
+    case 'judge_save':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_once __DIR__ . '/config/database.php';
+            require_once __DIR__ . '/models/Judging.php';
+            try {
+                $judging      = new Judging();
+                $judgeId      = (int)$_SESSION['user_id'];
+                $submissionId = (int)($_POST['submission_id'] ?? 0);
+                $action       = $_POST['action'] ?? 'draft'; // 'draft' or 'submit'
+                $status       = ($action === 'submit') ? 'submitted' : 'draft';
+
+                $rawScores = $_POST['scores'] ?? [];
+                $scores    = [];
+                foreach ($rawScores as $critId => $score) {
+                    $scores[(int)$critId] = (int)$score;
+                }
+
+                $result = $judging->saveEvaluation(
+                    $submissionId,
+                    $judgeId,
+                    $scores,
+                    trim($_POST['strengths']        ?? ''),
+                    trim($_POST['weaknesses']       ?? ''),
+                    trim($_POST['recommendations']  ?? ''),
+                    trim($_POST['overall_comments'] ?? ''),
+                    $status
+                );
+
+                $param = $result['success'] ? 'success' : 'error';
+                header('Location: ?page=judge_evaluate&id=' . $submissionId . '&' . $param . '=' . urlencode($result['message']));
+            } catch (Exception $e) {
+                header('Location: ?page=judge_dashboard&error=' . urlencode('Error: ' . $e->getMessage()));
+            }
+        } else {
+            header('Location: ?page=judge_dashboard');
+        }
+        exit; break;
 
     default:
         // For unknown pages, redirect to login if not authenticated, otherwise dashboard

@@ -35,6 +35,24 @@ switch($currentPage) {
     case 'email_campaigns':
         $pageTitle = 'Email Campaigns';
         break;
+    case 'judges':
+    case 'create_judge':
+    case 'edit_judge':
+        $pageTitle = 'Manage Judges';
+        break;
+    case 'judging_criteria':
+    case 'save_criteria':
+        $pageTitle = 'Scoring Criteria';
+        break;
+    case 'judging_results':
+        $pageTitle = 'Results & Rankings';
+        break;
+    case 'judge_dashboard':
+        $pageTitle = 'My Artworks to Judge';
+        break;
+    case 'judge_evaluate':
+        $pageTitle = 'Evaluate Artwork';
+        break;
     default:
         $pageTitle = 'Dashboard';
         break;
