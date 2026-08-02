@@ -259,17 +259,23 @@ class Judging {
             $stmt->execute([$id]);
             $judge = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$judge) return ['success' => false, 'message' => 'Judge not found.'];
-            // Hard delete — only reached when judge has 0 submitted evaluations
-            $this->db->prepare("DELETE FROM admin_users WHERE id = ? AND role = 'jury'")->execute([$id]);
-            // Clean up any draft evaluations (table may not exist if migration not run)
+
+            // Delete child records first to avoid FK constraint violations
             try {
-                $this->db->prepare("DELETE FROM jury_evaluations WHERE judge_id = ? AND status = 'draft'")->execute([$id]);
-            } catch (PDOException $e) { /* jury_evaluations table doesn't exist yet — ignore */ }
+                $this->db->prepare("DELETE FROM jury_scores WHERE evaluation_id IN (SELECT id FROM jury_evaluations WHERE judge_id = ?)")->execute([$id]);
+            } catch (PDOException $e) { /* table may not exist yet */ }
+            try {
+                $this->db->prepare("DELETE FROM jury_evaluations WHERE judge_id = ?")->execute([$id]);
+            } catch (PDOException $e) { /* table may not exist yet */ }
+
+            // Now safe to delete the judge account
+            $this->db->prepare("DELETE FROM admin_users WHERE id = ? AND role = 'jury'")->execute([$id]);
+
             $this->logActivity($adminId, 'JUDGE_DELETED', "Deleted judge: {$judge['username']}");
             return ['success' => true, 'message' => "Judge \"{$judge['username']}\" removed."];
         } catch (PDOException $e) {
             error_log("Judging::deleteJudge — " . $e->getMessage());
-            return ['success' => false, 'message' => 'Database error removing judge.'];
+            return ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
         }
     }
 
