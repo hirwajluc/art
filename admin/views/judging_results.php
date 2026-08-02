@@ -158,7 +158,7 @@
         <!-- ── Rankings Table ── -->
 
         <!-- Stats row -->
-        <div class="stats-grid" style="margin-bottom:24px;">
+        <div class="stats-grid" style="margin-bottom:24px; grid-template-columns:repeat(4,1fr);">
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-images"></i></div>
                 <div class="stat-number"><?php echo $resultStats['total_submissions']; ?></div>
