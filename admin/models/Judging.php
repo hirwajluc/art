@@ -177,42 +177,28 @@ class Judging {
             ");
             $stmt->execute([$username, $email, $placeholder, $fullName, $token, $expires]);
 
-            // Send invitation email via SMTP
+            // Send invitation email (same mail() approach as email campaigns)
             $setupLink = rtrim($baseUrl, '/') . '/admin/?page=set_password&token=' . $token;
+            $fromName  = 'GREATER Art Competition';
+            $fromEmail = 'no_reply@greaterproject.eu';
             $subject   = 'You have been invited as a judge — GREATER Art Competition';
-            $htmlBody  = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">'
-                       . '<h2 style="color:#1E90FF;">GREATER Art Competition</h2>'
-                       . '<p>Hello <strong>' . htmlspecialchars($fullName) . '</strong>,</p>'
-                       . '<p>You have been invited to serve as a judge for the GREATER Art Competition.</p>'
-                       . '<p><strong>Username:</strong> ' . htmlspecialchars($username) . '</p>'
-                       . '<p>Please set your password by clicking the button below (link valid for 48 hours):</p>'
-                       . '<p style="text-align:center;margin:30px 0;">'
-                       . '<a href="' . htmlspecialchars($setupLink) . '" style="background:#1E90FF;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Set My Password</a>'
-                       . '</p>'
-                       . '<p style="font-size:12px;color:#999;">If the button doesn\'t work, copy this link into your browser:<br>' . htmlspecialchars($setupLink) . '</p>'
-                       . '</div>';
+            $htmlBody  = $this->buildJudgeInviteHtml($fullName, $username, $setupLink);
 
-            $emailSent = false;
-            $emailError = '';
-            try {
-                require_once __DIR__ . '/../helpers/Mailer.php';
-                $mailer = Mailer::fromDB($this->db);
-                $result = $mailer->send($email, $fullName, $subject, $htmlBody);
-                if ($result === true) {
-                    $emailSent = true;
-                } else {
-                    $emailError = $result;
-                    error_log("[Judging::createJudge] Email failed: $emailError");
-                }
-            } catch (Exception $me) {
-                $emailError = $me->getMessage();
-                error_log("[Judging::createJudge] Mailer exception: $emailError");
+            $headers  = "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $headers .= "From: {$fromName} <{$fromEmail}>\r\n";
+            $headers .= "Reply-To: info@greaterproject.eu\r\n";
+            $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+
+            $emailSent = @mail($email, $subject, $htmlBody, $headers);
+            if (!$emailSent) {
+                error_log("[Judging::createJudge] mail() returned false for {$email}");
             }
 
             $this->logActivity($adminId, 'JUDGE_CREATED', "Created judge account: $username — invite sent to $email");
             $msg = $emailSent
                  ? "Judge account created. An invitation email has been sent to {$email}."
-                 : "Judge account created. Email could not be sent ({$emailError}) — share the invite link below manually.";
+                 : "Judge account created. Email delivery failed — share the invite link below manually.";
             return ['success' => true, 'message' => $msg, 'token' => $token];
         } catch (PDOException $e) {
             error_log("Judging::createJudge — " . $e->getMessage());
@@ -710,6 +696,67 @@ class Judging {
     }
 
     // ── Audit Logging ─────────────────────────────────────────────────────────
+
+    private function buildJudgeInviteHtml(string $fullName, string $username, string $setupLink): string {
+        $name     = htmlspecialchars($fullName);
+        $uname    = htmlspecialchars($username);
+        $link     = htmlspecialchars($setupLink);
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Judge Invitation — GREATER Art Competition</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#667eea,#764ba2);padding:32px 40px;text-align:center;">
+              <div style="color:#fff;font-size:26px;font-weight:700;letter-spacing:1px;">GREATER</div>
+              <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">Art Competition 2025</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 40px;">
+              <p style="font-size:16px;color:#374151;margin:0 0 18px;">Dear <strong>{$name}</strong>,</p>
+              <p style="font-size:15px;color:#4b5563;line-height:1.7;margin:0 0 16px;">
+                You have been invited to serve as a judge for the <strong>GREATER Art Competition</strong>.
+              </p>
+              <p style="font-size:15px;color:#4b5563;margin:0 0 8px;">
+                <strong>Your username:</strong> {$uname}
+              </p>
+              <p style="font-size:15px;color:#4b5563;line-height:1.7;margin:0 0 28px;">
+                Please click the button below to set your password and access the judging portal. This link is valid for <strong>48 hours</strong>.
+              </p>
+              <p style="text-align:center;margin:0 0 28px;">
+                <a href="{$link}" style="background:#1E90FF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">Set My Password</a>
+              </p>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;">
+              <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">If the button doesn't work, copy this link into your browser:</p>
+              <p style="font-size:12px;color:#6b7280;word-break:break-all;margin:0;">{$link}</p>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;">
+              <p style="font-size:13px;color:#9ca3af;margin:0;">
+                Questions? Contact us at <a href="mailto:info@greaterproject.eu" style="color:#667eea;">info@greaterproject.eu</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="font-size:12px;color:#9ca3af;margin:0;">© 2025 GREATER Art Competition · Co-funded by Erasmus+</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+HTML;
+    }
 
     public function logActivity(int $userId, string $action, string $description = ''): void {
         try {
