@@ -88,9 +88,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </body>
 </html>
 HTML;
-            $ok    = mail($to, $subject, $body, $headers);
-            $log[] = $ok ? '✅ mail() = TRUE (judge exact)' : '❌ mail() = FALSE (judge exact)';
-            $log[] = "Subject: {$subject}";
+            // Try 3 subject variations to find what Gmail accepts
+            $subjects = [
+                'You have been invited as a judge — GREATER Art Competition',
+                'GREATER Art Competition - Your Judge Account',
+                'GREATER: Account Setup for Art Competition Jury',
+            ];
+            foreach ($subjects as $subj) {
+                $ok    = mail($to, $subj, $body, $headers);
+                $log[] = ($ok ? '✅ TRUE' : '❌ FALSE') . " — Subject: {$subj}";
+                usleep(500000); // 0.5s gap
+            }
         }
 
         $log[] = '';
