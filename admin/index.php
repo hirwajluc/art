@@ -82,7 +82,7 @@ $adminOnlyPages = [
 if (!in_array($page, $publicPages)) {
     $userRole = $_SESSION['user_role'] ?? 'jury';
     // Jury users may only access judge pages + dashboard (which redirects them)
-    if ($userRole === 'jury' && !in_array($page, $judgePages) && $page !== 'dashboard') {
+    if ($userRole === 'jury' && !in_array($page, $judgePages) && $page !== 'dashboard' && $page !== 'logout') {
         header('Location: ?page=judge_dashboard');
         exit;
     }
