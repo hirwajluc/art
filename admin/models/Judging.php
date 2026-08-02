@@ -179,7 +179,7 @@ class Judging {
 
             // Send invitation email — same approach as email_handler.php campaigns
             $setupLink = rtrim($baseUrl, '/') . '/?page=set_password&token=' . $token;
-            $subject   = 'You have been invited as a judge — GREATER Art Competition';
+            $subject   = 'GREATER: Account Setup for Art Competition Jury';
             $htmlBody  = $this->buildJudgeInviteHtml($fullName, $username, $setupLink);
 
             $headers  = "MIME-Version: 1.0\r\n";
@@ -764,7 +764,7 @@ class Judging {
           <tr>
             <td style="background:linear-gradient(135deg,#667eea,#764ba2);padding:32px 40px;text-align:center;">
               <div style="color:#fff;font-size:26px;font-weight:700;letter-spacing:1px;">GREATER</div>
-              <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">Art Competition 2025</div>
+              <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">Art Competition</div>
             </td>
           </tr>
           <tr>
@@ -793,7 +793,7 @@ class Judging {
           </tr>
           <tr>
             <td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #e5e7eb;">
-              <p style="font-size:12px;color:#9ca3af;margin:0;">© 2025 GREATER Art Competition · Co-funded by Erasmus+</p>
+              <p style="font-size:12px;color:#9ca3af;margin:0;">© GREATER Art Competition · Co-funded by Erasmus+</p>
             </td>
           </tr>
         </table>
