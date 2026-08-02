@@ -177,32 +177,21 @@ class Judging {
             ");
             $stmt->execute([$username, $email, $placeholder, $fullName, $token, $expires]);
 
-            // Send invitation email via SMTP (Aruba smtp.aruba.it)
+            // Send invitation email — same approach as email_handler.php campaigns
             $setupLink = rtrim($baseUrl, '/') . '/?page=set_password&token=' . $token;
             $subject   = 'You have been invited as a judge — GREATER Art Competition';
             $htmlBody  = $this->buildJudgeInviteHtml($fullName, $username, $setupLink);
 
-            $emailSent  = false;
-            $emailError = '';
-            try {
-                require_once __DIR__ . '/../helpers/Mailer.php';
-                $result = (new Mailer())->send($email, $fullName, $subject, $htmlBody);
-                if ($result === true) {
-                    $emailSent = true;
-                } else {
-                    $emailError = $result;
-                    error_log("[Judging::createJudge] Email failed: $emailError");
-                }
-            } catch (Exception $me) {
-                $emailError = $me->getMessage();
-                error_log("[Judging::createJudge] Mailer exception: $emailError");
-            }
+            $headers  = "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $headers .= "From: GREATER Art Competition <no_reply@greaterproject.eu>\r\n";
+            $headers .= "Reply-To: info@greaterproject.eu\r\n";
+            $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+
+            @mail($email, $subject, $htmlBody, $headers);
 
             $this->logActivity($adminId, 'JUDGE_CREATED', "Created judge account: $username — invite sent to $email");
-            $msg = $emailSent
-                 ? "Judge account created. An invitation email has been sent to {$email}."
-                 : "Judge account created. Email could not be sent ({$emailError}) — share the invite link below manually.";
-            return ['success' => true, 'message' => $msg, 'token' => $token];
+            return ['success' => true, 'message' => "Judge account created. An invitation email has been sent to {$email}.", 'token' => $token];
         } catch (PDOException $e) {
             error_log("Judging::createJudge — " . $e->getMessage());
             return ['success' => false, 'message' => 'Database error creating judge.'];
