@@ -660,6 +660,9 @@ switch ($page) {
             $currentPage  = 'judges';
             $flashSuccess = isset($_GET['success']) ? urldecode($_GET['success']) : '';
             $flashError   = isset($_GET['error'])   ? urldecode($_GET['error'])   : '';
+            // Consume the one-time invite link stored after judge creation
+            $newInviteLink = $_SESSION['new_invite_link'] ?? null;
+            unset($_SESSION['new_invite_link']);
             include __DIR__ . '/views/judges.php';
         } catch (Exception $e) {
             header('Location: ?page=judges&error=' . urlencode('Error: ' . $e->getMessage()));
@@ -682,6 +685,10 @@ switch ($page) {
                     $baseUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
                     $result  = $judging->createJudge($username, $email, $fullName, (int)$_SESSION['user_id'], $baseUrl);
                     $param   = $result['success'] ? 'success' : 'error';
+                    // Store invite link in session so it survives the redirect and can be shown in the UI
+                    if ($result['success'] && isset($result['token'])) {
+                        $_SESSION['new_invite_link'] = $baseUrl . '/admin/?page=set_password&token=' . $result['token'];
+                    }
                     header('Location: ?page=judges&' . $param . '=' . urlencode($result['message']));
                 }
             } catch (Exception $e) {

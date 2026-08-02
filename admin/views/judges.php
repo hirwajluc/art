@@ -38,6 +38,21 @@
         <div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($flashError); ?></div>
         <?php endif; ?>
 
+        <?php if (!empty($newInviteLink)): ?>
+        <div style="background:#fef9c3; border:2px solid #f59e0b; border-radius:12px; padding:20px 24px; margin-bottom:24px;">
+            <div style="font-weight:700; color:#92400e; margin-bottom:10px;"><i class="fas fa-envelope-open-text"></i> Invitation Link (share this with the judge)</div>
+            <p style="color:#78350f; font-size:13px; margin-bottom:12px;">Email delivery is not guaranteed on this server. Copy the link below and share it directly with the judge.</p>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input type="text" id="inviteLinkBox" value="<?php echo htmlspecialchars($newInviteLink); ?>" readonly
+                       style="flex:1; padding:10px 14px; border:1.5px solid #f59e0b; border-radius:8px; font-size:13px; background:#fff; font-family:monospace;">
+                <button onclick="copyInviteLink()" class="btn btn-warning" style="white-space:nowrap;">
+                    <i class="fas fa-copy"></i> Copy Link
+                </button>
+            </div>
+            <p style="color:#92400e; font-size:12px; margin-top:8px;"><i class="fas fa-clock"></i> Link expires in 48 hours.</p>
+        </div>
+        <?php endif; ?>
+
         <!-- Header action -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
             <p style="color:var(--gray);"><?php echo count($judges); ?> judge account(s) registered</p>
@@ -54,18 +69,51 @@
         </div>
         <?php else: ?>
         <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px,1fr)); gap:20px;">
-        <?php foreach ($judges as $judge): ?>
+        <?php foreach ($judges as $judge):
+            $hasPendingInvite = !empty($judge['password_setup_token']) &&
+                                !empty($judge['token_expires_at']) &&
+                                strtotime($judge['token_expires_at']) > time();
+            $scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $baseUrl  = $scheme . '://' . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+            $judgeInviteLink = $hasPendingInvite
+                ? $baseUrl . '/admin/?page=set_password&token=' . $judge['password_setup_token']
+                : '';
+        ?>
         <div class="judge-card">
             <div class="judge-card-header">
-                <div class="judge-avatar"><?php echo strtoupper(substr($judge['full_name'],0,1)); ?></div>
+                <div class="judge-avatar" style="<?php echo $hasPendingInvite ? 'background:linear-gradient(135deg,#f59e0b,#d97706);' : ''; ?>">
+                    <?php echo $hasPendingInvite ? '✉' : strtoupper(substr($judge['full_name'],0,1)); ?>
+                </div>
                 <div class="judge-meta">
                     <h3><?php echo htmlspecialchars($judge['full_name']); ?></h3>
                     <small>@<?php echo htmlspecialchars($judge['username']); ?> · <?php echo htmlspecialchars($judge['email']); ?></small>
                 </div>
+                <?php if ($hasPendingInvite): ?>
+                <span class="status-badge" style="background:#fef9c3; color:#92400e; border:1px solid #f59e0b;">
+                    <i class="fas fa-clock"></i> Invite Pending
+                </span>
+                <?php else: ?>
                 <span class="status-badge <?php echo $judge['status'] === 'active' ? 'status-active' : 'status-inactive'; ?>">
                     <?php echo ucfirst($judge['status']); ?>
                 </span>
+                <?php endif; ?>
             </div>
+
+            <?php if ($hasPendingInvite): ?>
+            <div style="padding:12px 24px; background:#fffbeb; border-bottom:1px solid #fde68a;">
+                <p style="font-size:12px; color:#92400e; margin-bottom:8px;"><i class="fas fa-info-circle"></i> Judge hasn't set their password yet. Share this invite link with them:</p>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" value="<?php echo htmlspecialchars($judgeInviteLink); ?>" readonly
+                           id="link_<?php echo $judge['id']; ?>"
+                           style="flex:1; font-size:11px; padding:6px 10px; border:1px solid #f59e0b; border-radius:6px; background:#fff; font-family:monospace; min-width:0;">
+                    <button onclick="copyLink('link_<?php echo $judge['id']; ?>')" class="btn btn-warning" style="font-size:12px; padding:6px 10px; white-space:nowrap;">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <p style="font-size:11px; color:#b45309; margin-top:6px;"><i class="fas fa-clock"></i> Expires: <?php echo date('M j, Y g:i A', strtotime($judge['token_expires_at'])); ?></p>
+            </div>
+            <?php endif; ?>
+
             <div class="judge-stats">
                 <div class="j-stat"><div class="num"><?php echo (int)$judge['evaluated_count']; ?></div><div class="lbl">Evaluated</div></div>
                 <div class="j-stat"><div class="num"><?php echo (int)$judge['submitted_count']; ?></div><div class="lbl">Submitted</div></div>
@@ -184,6 +232,28 @@ function openResetModal(id, name) {
 document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
 });
+
+function copyLink(inputId) {
+    const el = document.getElementById(inputId);
+    el.select(); el.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(el.value).then(() => {
+        const btn = el.nextElementSibling;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => { btn.innerHTML = orig; }, 2000);
+    });
+}
+
+function copyInviteLink() {
+    const el = document.getElementById('inviteLinkBox');
+    el.select(); el.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(el.value).then(() => {
+        const btn = el.nextElementSibling;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => { btn.innerHTML = orig; }, 2000);
+    });
+}
 </script>
 </body>
 </html>

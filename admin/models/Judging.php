@@ -82,16 +82,44 @@ class Judging {
     // ── Judge (admin_users with role='jury') Management ───────────────────────
 
     public function getJudges(): array {
+        // First try the full query with evaluation counts
         try {
             $stmt = $this->db->query("
                 SELECT u.id, u.username, u.email, u.full_name, u.status, u.created_at,
-                       COUNT(DISTINCT je.submission_id) AS evaluated_count,
-                       SUM(CASE WHEN je.status = 'submitted' THEN 1 ELSE 0 END) AS submitted_count
+                       u.password_setup_token, u.token_expires_at,
+                       COUNT(DISTINCT je.submission_id)                              AS evaluated_count,
+                       SUM(CASE WHEN je.status = 'submitted' THEN 1 ELSE 0 END)    AS submitted_count
                 FROM admin_users u
                 LEFT JOIN jury_evaluations je ON je.judge_id = u.id
                 WHERE u.role = 'jury'
                 GROUP BY u.id
                 ORDER BY u.created_at DESC
+            ");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            // jury_evaluations may not exist yet — fall back to basic query
+        }
+        try {
+            $stmt = $this->db->query("
+                SELECT id, username, email, full_name, status, created_at,
+                       password_setup_token, token_expires_at,
+                       0 AS evaluated_count, 0 AS submitted_count
+                FROM admin_users
+                WHERE role = 'jury'
+                ORDER BY created_at DESC
+            ");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            // password_setup_token columns may not exist yet — simplest possible fallback
+        }
+        try {
+            $stmt = $this->db->query("
+                SELECT id, username, email, full_name, status, created_at,
+                       NULL AS password_setup_token, NULL AS token_expires_at,
+                       0 AS evaluated_count, 0 AS submitted_count
+                FROM admin_users
+                WHERE role = 'jury'
+                ORDER BY created_at DESC
             ");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
