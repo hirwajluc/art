@@ -156,11 +156,15 @@ class Judging {
                 }
             } catch (PDOException $e) { /* already exists or no permission — continue */ }
 
-            $stmt = $this->db->prepare("SELECT id FROM admin_users WHERE username = ? OR email = ?");
+            // Exclude soft-deleted remnants from the uniqueness check
+            $stmt = $this->db->prepare("SELECT id FROM admin_users WHERE (username = ? OR email = ?) AND username NOT LIKE '%\_deleted\_%'");
             $stmt->execute([$username, $email]);
             if ($stmt->fetch()) {
                 return ['success' => false, 'message' => 'Username or email already exists.'];
             }
+
+            // Hard-delete any leftover soft-deleted records with the same email so they don't accumulate
+            $this->db->prepare("DELETE FROM admin_users WHERE email = ? AND username LIKE '%\_deleted\_%'")->execute([$email]);
 
             // Generate setup token (48-hour expiry) — placeholder password until judge sets one
             $token   = bin2hex(random_bytes(32));
