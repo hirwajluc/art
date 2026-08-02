@@ -14,7 +14,7 @@
             <?php include 'views/includes/topbar.php'; ?>
             
             <!-- Stats Cards -->
-            <div class="stats-grid">
+            <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-users"></i>
