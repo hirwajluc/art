@@ -171,7 +171,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-clock"></i></div>
-                <div class="stat-number"><?php echo $resultStats['pending_artworks']; ?></div>
+                <div class="stat-number"><?php echo $resultStats['in_progress']; ?></div>
                 <div class="stat-label">In Progress</div>
             </div>
             <div class="stat-card">

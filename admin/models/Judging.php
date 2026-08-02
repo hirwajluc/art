@@ -634,6 +634,7 @@ class Judging {
         // Query jury-specific stats separately — jury tables may not exist yet (migration pending)
         $totalEvals   = 0;
         $complete     = 0;
+        $inProgress   = 0;
         $activeJudges = 0;
         try {
             $activeJudges = $this->countActiveJudges();
@@ -650,13 +651,16 @@ class Judging {
                 $stmt->execute([$activeJudges]);
                 $complete = (int)$stmt->fetchColumn();
             }
+            // In Progress = submissions touched by at least 1 judge (any status) but not fully judged
+            $touched    = (int)$this->db->query("SELECT COUNT(DISTINCT submission_id) FROM jury_evaluations")->fetchColumn();
+            $inProgress = max(0, $touched - $complete);
         } catch (PDOException $e) { /* jury tables not yet created — leave at 0 */ }
 
         return [
             'total_submissions'  => $totalSubs,
             'total_evaluations'  => $totalEvals,
             'complete_artworks'  => $complete,
-            'pending_artworks'   => $totalSubs - $complete,
+            'in_progress'        => $inProgress,
             'active_judges'      => $activeJudges,
         ];
     }
