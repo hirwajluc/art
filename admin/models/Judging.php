@@ -188,7 +188,8 @@ class Judging {
             $headers .= "Reply-To: info@greaterproject.eu\r\n";
             $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
-            @mail($email, $subject, $htmlBody, $headers);
+            // 5th param sets envelope sender so SPF passes (same as CI email library)
+            @mail($email, $subject, $htmlBody, $headers, '-f no_reply@greaterproject.eu');
 
             $this->logActivity($adminId, 'JUDGE_CREATED', "Created judge account: $username — invite sent to $email");
             return ['success' => true, 'message' => "Judge account created. An invitation email has been sent to {$email}.", 'token' => $token];
