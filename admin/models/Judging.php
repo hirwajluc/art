@@ -740,6 +740,10 @@ class Judging {
 
     // ── Audit Logging ─────────────────────────────────────────────────────────
 
+    public function buildJudgeInviteHtmlPublic(string $fullName, string $username, string $setupLink): string {
+        return $this->buildJudgeInviteHtml($fullName, $username, $setupLink);
+    }
+
     private function buildJudgeInviteHtml(string $fullName, string $username, string $setupLink): string {
         $name     = htmlspecialchars($fullName);
         $uname    = htmlspecialchars($username);
