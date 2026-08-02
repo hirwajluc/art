@@ -260,13 +260,16 @@ class Judging {
             $judge = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$judge) return ['success' => false, 'message' => 'Judge not found.'];
 
-            // Delete child records first to avoid FK constraint violations
+            // Delete all child records first (FK constraints must be satisfied in order)
             try {
                 $this->db->prepare("DELETE FROM jury_scores WHERE evaluation_id IN (SELECT id FROM jury_evaluations WHERE judge_id = ?)")->execute([$id]);
             } catch (PDOException $e) { /* table may not exist yet */ }
             try {
                 $this->db->prepare("DELETE FROM jury_evaluations WHERE judge_id = ?")->execute([$id]);
             } catch (PDOException $e) { /* table may not exist yet */ }
+            try {
+                $this->db->prepare("DELETE FROM admin_activity_logs WHERE user_id = ?")->execute([$id]);
+            } catch (PDOException $e) { /* table may not exist */ }
 
             // Now safe to delete the judge account
             $this->db->prepare("DELETE FROM admin_users WHERE id = ? AND role = 'jury'")->execute([$id]);
