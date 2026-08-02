@@ -14,12 +14,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $subject = trim($_POST['subject'] ?? 'GREATER Email Test');
     $method  = $_POST['method'] ?? 'mail';
 
+    // Read debug log if it exists
+    $debugLog = '';
+    foreach ([__DIR__ . '/mail_debug.log', __DIR__ . '/../mail_debug.log'] as $dl) {
+        if (file_exists($dl)) { $debugLog = file_get_contents($dl); break; }
+    }
+
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
         $log[] = '❌ Invalid recipient email address.';
     } else {
-        $body = "<p>This is a test email sent from <strong>" . htmlspecialchars($_SERVER['HTTP_HOST']) . "</strong> at " . date('Y-m-d H:i:s') . ".</p>"
-              . "<p>From: <strong>" . htmlspecialchars($from) . "</strong></p>"
-              . "<p>Method: <strong>" . htmlspecialchars($method) . "</strong></p>";
+        $simpleBody = "<p>This is a test email sent from <strong>" . htmlspecialchars($_SERVER['HTTP_HOST']) . "</strong> at " . date('Y-m-d H:i:s') . ".</p>"
+                    . "<p>From: <strong>" . htmlspecialchars($from) . "</strong></p>"
+                    . "<p>Method: <strong>" . htmlspecialchars($method) . "</strong></p>";
+
+        // Judge invite style body
+        $richBody = '<!DOCTYPE html><html><body style="font-family:Arial;background:#f3f4f6;padding:40px 0;">'
+                  . '<table width="600" style="background:#fff;border-radius:16px;margin:0 auto;padding:40px;">'
+                  . '<tr><td style="background:linear-gradient(135deg,#667eea,#764ba2);padding:32px;text-align:center;border-radius:12px 12px 0 0;">'
+                  . '<div style="color:#fff;font-size:26px;font-weight:700;">GREATER</div>'
+                  . '<div style="color:rgba(255,255,255,.85);font-size:14px;">Art Competition 2025</div></td></tr>'
+                  . '<tr><td style="padding:36px;">'
+                  . '<p>Dear <strong>Test Judge</strong>,</p>'
+                  . '<p>You have been invited to serve as a judge for the GREATER Art Competition.</p>'
+                  . '<p><strong>Username:</strong> testjudge</p>'
+                  . '<p style="text-align:center;margin:30px 0;">'
+                  . '<a href="https://www.greaterproject.eu/art/admin/?page=set_password&token=TEST123" style="background:#1E90FF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:bold;">Set My Password</a>'
+                  . '</p></td></tr></table></body></html>';
+
+        $body = ($method === 'mail_rich') ? $richBody : $simpleBody;
 
         $headers  = "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
@@ -34,10 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $log[] = "📤 PHP: " . phpversion();
         $log[] = "📤 Sendmail path: " . ini_get('sendmail_path');
 
-        if ($method === 'mail_plain') {
+        if ($method === 'mail_plain' || $method === 'mail_rich') {
             // Plain mail() no envelope sender
-            $ok = @mail($to, $subject, $body, $headers);
-            $log[] = $ok ? '✅ mail() returned TRUE (no -f param)' : '❌ mail() returned FALSE (no -f param)';
+            $ok = mail($to, $subject, $body, $headers);
+            $log[] = $ok ? '✅ mail() returned TRUE' : '❌ mail() returned FALSE';
         } elseif ($method === 'mail_with_f') {
             // mail() with envelope sender
             $ok = @mail($to, $subject, $body, $headers, "-f {$from}");
@@ -109,9 +131,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <label>Method</label>
     <select name="method">
-      <option value="mail_plain"   <?php echo ($_POST['method']??'')==='mail_plain'   ?'selected':''; ?>>mail() — plain (no envelope sender)</option>
-      <option value="mail_with_f" <?php echo ($_POST['method']??'')==='mail_with_f' ?'selected':''; ?>>mail() — with -f envelope sender</option>
-      <option value="smtp"        <?php echo ($_POST['method']??'')==='smtp'        ?'selected':''; ?>>SMTP probe — smtp.aruba.it:25 (no send, just connect+auth test)</option>
+      <option value="mail_plain"   <?php echo ($_POST['method']??'')==='mail_plain'   ?'selected':''; ?>>mail() — simple body (confirmed working)</option>
+      <option value="mail_rich"    <?php echo ($_POST['method']??'')==='mail_rich'    ?'selected':''; ?>>mail() — rich HTML body (same as judge invite)</option>
+      <option value="mail_with_f"  <?php echo ($_POST['method']??'')==='mail_with_f'  ?'selected':''; ?>>mail() — with -f envelope sender</option>
+      <option value="smtp"         <?php echo ($_POST['method']??'')==='smtp'         ?'selected':''; ?>>SMTP probe — connect+auth test only</option>
     </select>
 
     <div id="smtp_fields" style="display:none;">
@@ -127,6 +150,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="card">
   <h3 style="margin-top:0;">Results</h3>
   <div class="log"><?php echo htmlspecialchars(implode("\n", $log)); ?></div>
+</div>
+<?php endif; ?>
+
+<?php
+$debugLog = '';
+foreach ([__DIR__ . '/mail_debug.log', __DIR__ . '/../mail_debug.log'] as $dl) {
+    if (file_exists($dl)) { $debugLog = file_get_contents($dl); break; }
+}
+if ($debugLog): ?>
+<div class="card">
+  <h3 style="margin-top:0;">📋 mail_debug.log (judge invite log)</h3>
+  <div class="log"><?php echo htmlspecialchars($debugLog); ?></div>
 </div>
 <?php endif; ?>
 

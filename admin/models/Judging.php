@@ -188,10 +188,18 @@ class Judging {
             $headers .= "Reply-To: info@greaterproject.eu\r\n";
             $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
-            @mail($email, $subject, $htmlBody, $headers);
+            $mailResult = mail($email, $subject, $htmlBody, $headers);
+            $mailStatus = $mailResult ? 'mail()=TRUE' : 'mail()=FALSE';
+            error_log("[GREATER] Judge invite to {$email}: {$mailStatus}");
+            file_put_contents(__DIR__ . '/../../mail_debug.log',
+                date('Y-m-d H:i:s') . " judge_invite to={$email} {$mailStatus} subject={$subject}\n",
+                FILE_APPEND);
 
-            $this->logActivity($adminId, 'JUDGE_CREATED', "Created judge account: $username — invite sent to $email");
-            return ['success' => true, 'message' => "Judge account created. An invitation email has been sent to {$email}.", 'token' => $token];
+            $this->logActivity($adminId, 'JUDGE_CREATED', "Created judge account: $username — invite {$mailStatus} to $email");
+            $msg = $mailResult
+                ? "Judge account created. Invitation email sent to {$email} (mail()=TRUE)."
+                : "Judge account created. mail() returned FALSE for {$email} — check mail_debug.log.";
+            return ['success' => true, 'message' => $msg, 'token' => $token];
         } catch (PDOException $e) {
             error_log("Judging::createJudge — " . $e->getMessage());
             return ['success' => false, 'message' => 'Database error creating judge.'];
