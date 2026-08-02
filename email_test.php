@@ -49,15 +49,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $log[] = $ok ? '✅ mail() = TRUE' : '❌ mail() = FALSE';
 
         } elseif ($method === 'mail_judge_exact') {
-            // Exact replica of createJudge() email — same subject, same HTML builder
-            require_once __DIR__ . '/admin/models/Judging.php';
-            $j       = new Judging();
+            // Exact replica of createJudge() — same subject and same HTML as buildJudgeInviteHtml()
             $link    = 'https://' . $_SERVER['HTTP_HOST'] . '/art/admin/?page=set_password&token=TESTTOKEN123';
+            $name    = htmlspecialchars('Test Judge');
+            $uname   = htmlspecialchars('testjudge');
+            $lnk     = htmlspecialchars($link);
             $subject = 'You have been invited as a judge — GREATER Art Competition';
-            $body    = $j->buildJudgeInviteHtmlPublic('Test Judge', 'testjudge', $link);
-            $ok      = mail($to, $subject, $body, $headers);
-            $log[]   = $ok ? '✅ mail() = TRUE (judge exact)' : '❌ mail() = FALSE (judge exact)';
-            $log[]   = "Subject used: {$subject}";
+            $body    = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Judge Invitation</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+<tr><td style="background:linear-gradient(135deg,#667eea,#764ba2);padding:32px 40px;text-align:center;">
+  <div style="color:#fff;font-size:26px;font-weight:700;letter-spacing:1px;">GREATER</div>
+  <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px;">Art Competition 2025</div>
+</td></tr>
+<tr><td style="padding:36px 40px;">
+  <p style="font-size:16px;color:#374151;margin:0 0 18px;">Dear <strong>{$name}</strong>,</p>
+  <p style="font-size:15px;color:#4b5563;line-height:1.7;margin:0 0 16px;">You have been invited to serve as a judge for the <strong>GREATER Art Competition</strong>.</p>
+  <p style="font-size:15px;color:#4b5563;margin:0 0 8px;"><strong>Your username:</strong> {$uname}</p>
+  <p style="font-size:15px;color:#4b5563;line-height:1.7;margin:0 0 28px;">Click the button below to set your password. This link is valid for <strong>48 hours</strong>.</p>
+  <p style="text-align:center;margin:0 0 28px;">
+    <a href="{$lnk}" style="background:#1E90FF;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">Set My Password</a>
+  </p>
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:28px 0;">
+  <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">If the button doesn't work, copy this link:</p>
+  <p style="font-size:12px;color:#6b7280;word-break:break-all;margin:0;">{$lnk}</p>
+</td></tr>
+<tr><td style="background:#f9fafb;padding:20px 40px;text-align:center;border-top:1px solid #e5e7eb;">
+  <p style="font-size:12px;color:#9ca3af;margin:0;">© 2025 GREATER Art Competition · Co-funded by Erasmus+</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>
+HTML;
+            $ok    = mail($to, $subject, $body, $headers);
+            $log[] = $ok ? '✅ mail() = TRUE (judge exact)' : '❌ mail() = FALSE (judge exact)';
+            $log[] = "Subject: {$subject}";
         }
 
         $log[] = '';
