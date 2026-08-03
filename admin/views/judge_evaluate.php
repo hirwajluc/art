@@ -62,6 +62,31 @@
         .score-slider-wrap.disabled input[type="range"] { pointer-events:none; opacity:.5; }
         .score-slider-wrap.disabled input[type="number"] { pointer-events:none; background:#f8f9fa; }
         textarea:disabled { background:#f8f9fa; color:#6c757d; }
+
+        /* Media loader */
+        .media-loader { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:280px; background:#1a1a2e; gap:14px; padding:30px; }
+        .spinner { width:48px; height:48px; border:4px solid rgba(255,255,255,.15); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .load-text { color:rgba(255,255,255,.6); font-size:13px; }
+        .load-bar-wrap { width:160px; height:4px; background:rgba(255,255,255,.1); border-radius:2px; overflow:hidden; }
+        .load-bar { height:100%; width:0; background:var(--primary); border-radius:2px; transition:width .3s; }
+
+        /* Fullscreen button on media */
+        .artwork-media { position:relative; }
+        .artwork-media img { cursor:zoom-in; }
+        .fs-btn { position:absolute; bottom:12px; right:12px; background:rgba(0,0,0,.65); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .2s; backdrop-filter:blur(4px); }
+        .fs-btn:hover { background:rgba(30,144,255,.85); }
+
+        /* Fullscreen overlay */
+        .fs-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:9999; flex-direction:column; align-items:center; justify-content:center; }
+        .fs-overlay.active { display:flex; }
+        .fs-content { max-width:95vw; max-height:90vh; display:flex; align-items:center; justify-content:center; }
+        .fs-content img  { max-width:95vw; max-height:88vh; object-fit:contain; border-radius:4px; box-shadow:0 0 60px rgba(0,0,0,.8); }
+        .fs-content video{ max-width:95vw; max-height:88vh; border-radius:4px; box-shadow:0 0 60px rgba(0,0,0,.8); }
+        .fs-close { position:fixed; top:20px; right:24px; background:rgba(255,255,255,.1); border:none; color:#fff; width:44px; height:44px; border-radius:50%; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s; z-index:10000; }
+        .fs-close:hover { background:rgba(255,80,80,.7); }
+        .fs-hint { position:fixed; bottom:18px; color:rgba(255,255,255,.4); font-size:12px; }
+        .fs-hint kbd { background:rgba(255,255,255,.15); padding:2px 7px; border-radius:4px; font-size:11px; }
     </style>
 </head>
 <body>
@@ -219,15 +244,41 @@
 
             <!-- Right: anonymous artwork -->
             <div class="artwork-panel">
-                <div class="artwork-media">
+
+                <!-- Loading spinner -->
+                <div class="media-loader" id="mediaLoader">
+                    <div class="spinner"></div>
+                    <div class="load-text">Loading artwork…</div>
+                    <div class="load-bar-wrap"><div class="load-bar" id="loadBar"></div></div>
+                </div>
+
+                <div class="artwork-media" id="artworkMedia" style="display:none;">
                     <?php if ($webPath && $isImage): ?>
-                        <img src="<?php echo htmlspecialchars($webPath); ?>" alt="Artwork">
+                        <img src="<?php echo htmlspecialchars($webPath); ?>"
+                             alt="Artwork"
+                             id="artImg"
+                             onclick="openFullscreen('image')"
+                             title="Click to view fullscreen">
+                        <button class="fs-btn" onclick="openFullscreen('image')" title="View fullscreen">
+                            <i class="fas fa-expand"></i> Fullscreen
+                        </button>
                     <?php elseif ($webPath): ?>
-                        <video src="<?php echo htmlspecialchars($webPath); ?>" controls preload="metadata"></video>
+                        <video src="<?php echo htmlspecialchars($webPath); ?>"
+                               controls
+                               preload="metadata"
+                               id="artVideo"
+                               onloadedmetadata="mediaReady()"></video>
+                        <button class="fs-btn" onclick="openFullscreen('video')" title="View fullscreen">
+                            <i class="fas fa-expand"></i> Fullscreen
+                        </button>
                     <?php else: ?>
-                        <div style="color:#555; padding:40px; text-align:center;"><i class="fas fa-file" style="font-size:60px; display:block; margin-bottom:12px;"></i>Media not available</div>
+                        <div style="color:#555; padding:40px; text-align:center;">
+                            <i class="fas fa-file" style="font-size:60px; display:block; margin-bottom:12px;"></i>
+                            Media not available
+                        </div>
                     <?php endif; ?>
                 </div>
+
                 <div class="artwork-meta">
                     <div class="anon-code"><?php echo htmlspecialchars($submission['competition_code']); ?></div>
                     <div class="artwork-title-display"><?php echo htmlspecialchars($submission['artwork_name']); ?></div>
@@ -241,6 +292,16 @@
                     <?php endif; ?>
                     <div style="font-size:12px; color:#aaa;">Submitted <?php echo date('M j, Y', strtotime($submission['submissionDate'])); ?></div>
                 </div>
+            </div>
+
+            <!-- Fullscreen lightbox -->
+            <div class="fs-overlay" id="fsOverlay" onclick="closeFullscreen()">
+                <button class="fs-close" onclick="closeFullscreen()"><i class="fas fa-times"></i></button>
+                <div class="fs-content" onclick="event.stopPropagation()">
+                    <img id="fsImg" src="" alt="" style="display:none;">
+                    <video id="fsVideo" controls style="display:none;"></video>
+                </div>
+                <div class="fs-hint">Click outside or press <kbd>Esc</kbd> to close</div>
             </div>
 
         </div><!-- .eval-layout -->
@@ -287,6 +348,83 @@ function confirmSubmit() {
 
 // Init running total on page load
 updateTotal();
+
+// ── Media loading with progress bar ──────────────────────────────────────────
+const isImage = <?php echo $isImage ? 'true' : 'false'; ?>;
+const webPath = <?php echo $webPath ? json_encode($webPath) : 'null'; ?>;
+
+function mediaReady() {
+    document.getElementById('mediaLoader').style.display  = 'none';
+    document.getElementById('artworkMedia').style.display = 'flex';
+}
+
+function simulateProgress(onDone) {
+    const bar = document.getElementById('loadBar');
+    let pct = 0;
+    const iv = setInterval(() => {
+        pct = Math.min(pct + Math.random() * 18, 90);
+        bar.style.width = pct + '%';
+    }, 120);
+    return { stop() { clearInterval(iv); bar.style.width = '100%'; setTimeout(onDone, 200); } };
+}
+
+if (webPath) {
+    if (isImage) {
+        const progress = simulateProgress(mediaReady);
+        const img = document.getElementById('artImg');
+        if (img) {
+            if (img.complete && img.naturalWidth) {
+                progress.stop();
+            } else {
+                img.addEventListener('load',  () => progress.stop());
+                img.addEventListener('error', () => { progress.stop(); });
+            }
+        }
+    } else {
+        // Video: show real progress via XMLHttpRequest range if possible, else simulate
+        const video = document.getElementById('artVideo');
+        if (video) {
+            const progress = simulateProgress(mediaReady);
+            video.addEventListener('canplay', () => progress.stop());
+            video.addEventListener('error',   () => progress.stop());
+        }
+    }
+} else {
+    mediaReady(); // no media — just show the panel
+}
+
+// ── Fullscreen lightbox ───────────────────────────────────────────────────────
+function openFullscreen(type) {
+    const overlay  = document.getElementById('fsOverlay');
+    const fsImg    = document.getElementById('fsImg');
+    const fsVideo  = document.getElementById('fsVideo');
+
+    if (type === 'image') {
+        fsImg.src            = document.getElementById('artImg').src;
+        fsImg.style.display  = 'block';
+        fsVideo.style.display = 'none';
+        fsVideo.pause && fsVideo.pause();
+    } else {
+        const src             = document.getElementById('artVideo').src;
+        fsVideo.src           = src;
+        fsVideo.style.display = 'block';
+        fsImg.style.display   = 'none';
+        fsVideo.play();
+    }
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeFullscreen() {
+    const overlay = document.getElementById('fsOverlay');
+    const fsVideo = document.getElementById('fsVideo');
+    overlay.classList.remove('active');
+    fsVideo.pause && fsVideo.pause();
+    fsVideo.src = '';
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullscreen(); });
 </script>
 </body>
 </html>
