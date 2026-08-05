@@ -39,13 +39,6 @@
         .score-number-input { width:70px; text-align:center; font-size:18px; font-weight:700; color:var(--primary); border:2px solid #e2e8f0; border-radius:8px; padding:6px; }
         .score-number-input:focus { border-color:var(--primary); outline:none; }
 
-        /* Notes section */
-        .notes-card { background:#fff; border-radius:12px; box-shadow:0 3px 12px rgba(0,0,0,.07); padding:24px; }
-        .notes-card h3 { font-size:16px; font-weight:700; margin-bottom:18px; color:var(--dark); }
-        .notes-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-        @media(max-width:700px) { .notes-grid { grid-template-columns:1fr; } }
-        textarea.form-input { resize:vertical; min-height:90px; }
-
         /* Totals & actions */
         .total-bar { background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; border-radius:12px; padding:18px 24px; display:flex; justify-content:space-between; align-items:center; }
         .total-bar .total-label { font-size:14px; opacity:.85; }
@@ -140,6 +133,13 @@
                     </div>
                     <?php endif; ?>
 
+                    <?php if (empty($criteria)): ?>
+                    <div style="background:#fff3cd; border-left:4px solid #ffc107; border-radius:10px; padding:16px 20px;">
+                        <div style="font-weight:700; color:#856404; margin-bottom:6px;"><i class="fas fa-exclamation-triangle"></i> Judging criteria not yet configured</div>
+                        <div style="font-size:14px; color:#533f03;">The administrator has not set up scoring criteria yet. Please check back later or contact the competition organiser.</div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php foreach ($criteria as $c):
                         $cid  = (int)$c['id'];
                         $max  = (int)$c['max_score'];
@@ -181,6 +181,7 @@
                     </div>
                     <?php endforeach; ?>
 
+                    <?php if (!empty($criteria)): ?>
                     <!-- Running total -->
                     <div class="total-bar">
                         <div>
@@ -189,29 +190,6 @@
                         </div>
                         <div style="text-align:right; opacity:.8; font-size:13px;">
                             Sum across all <?php echo count($criteria); ?> criteria
-                        </div>
-                    </div>
-
-                    <!-- Judge's notes -->
-                    <div class="notes-card">
-                        <h3><i class="fas fa-sticky-note"></i> Judge Notes (Visible to admin only)</h3>
-                        <div class="notes-grid">
-                            <div class="form-group">
-                                <label class="form-label">Strengths</label>
-                                <textarea class="form-input" name="strengths" <?php echo $isReadonly ? 'disabled' : ''; ?> placeholder="What stands out positively?"><?php echo htmlspecialchars($evaluation['strengths'] ?? ''); ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Weaknesses</label>
-                                <textarea class="form-input" name="weaknesses" <?php echo $isReadonly ? 'disabled' : ''; ?> placeholder="What could be improved?"><?php echo htmlspecialchars($evaluation['weaknesses'] ?? ''); ?></textarea>
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-top:4px;">
-                            <label class="form-label">Recommendations</label>
-                            <textarea class="form-input" name="recommendations" <?php echo $isReadonly ? 'disabled' : ''; ?> placeholder="Any specific recommendations?" style="min-height:70px;"><?php echo htmlspecialchars($evaluation['recommendations'] ?? ''); ?></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Overall Comments</label>
-                            <textarea class="form-input" name="overall_comments" <?php echo $isReadonly ? 'disabled' : ''; ?> placeholder="General comments about this artwork…" style="min-height:80px;"><?php echo htmlspecialchars($evaluation['overall_comments'] ?? ''); ?></textarea>
                         </div>
                     </div>
 
@@ -235,6 +213,13 @@
                         <span style="color:#155724; font-weight:600;"><i class="fas fa-lock"></i> Submitted on <?php echo date('M j, Y g:i A', strtotime($evaluation['submitted_at'])); ?></span>
                         <a href="?page=judge_dashboard" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php else: ?>
+                    <div class="action-bar">
+                        <a href="?page=judge_dashboard" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
                         </a>
                     </div>
                     <?php endif; ?>
