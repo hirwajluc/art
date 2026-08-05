@@ -56,9 +56,8 @@
         .score-slider-wrap.disabled input[type="number"] { pointer-events:none; background:#f8f9fa; }
         textarea:disabled { background:#f8f9fa; color:#6c757d; }
 
-        /* Media loader — absolute overlay so artwork renders underneath immediately */
-        .media-loader { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(26,26,46,.9); gap:14px; padding:30px; border-radius:12px 12px 0 0; transition:opacity .5s ease; }
-        .media-loader.done { opacity:0; pointer-events:none; }
+        /* Media loader */
+        .media-loader { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:280px; background:#1a1a2e; gap:14px; padding:30px; }
         .spinner { width:44px; height:44px; border:4px solid rgba(255,255,255,.15); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
         .load-text { color:rgba(255,255,255,.7); font-size:13px; }
@@ -229,13 +228,13 @@
             <!-- Right: anonymous artwork -->
             <div class="artwork-panel">
 
-                <!-- Loading spinner (absolute overlay — artwork renders beneath it) -->
+                <!-- Loading spinner -->
                 <div class="media-loader" id="mediaLoader">
                     <div class="spinner"></div>
                     <div class="load-text">Loading artwork…</div>
                 </div>
 
-                <div class="artwork-media" id="artworkMedia">
+                <div class="artwork-media" id="artworkMedia" style="display:none;">
                     <?php if ($webPath && $isImage): ?>
                         <img src="<?php echo htmlspecialchars($webPath); ?>"
                              alt="Artwork"
@@ -336,38 +335,36 @@ const isImage = <?php echo $isImage ? 'true' : 'false'; ?>;
 const webPath = <?php echo $webPath ? json_encode($webPath) : 'null'; ?>;
 
 function mediaReady() {
-    const loader = document.getElementById('mediaLoader');
-    if (!loader || loader.classList.contains('done')) return;
-    loader.classList.add('done');
-    // Remove from DOM after fade so it doesn't intercept clicks
-    setTimeout(() => { loader.style.display = 'none'; }, 600);
+    document.getElementById('mediaLoader').style.display  = 'none';
+    document.getElementById('artworkMedia').style.display = 'flex';
 }
 
 if (webPath) {
-    // Hard timeout — always reveal media after 8 s even if events never fire
-    const fallback = setTimeout(mediaReady, 8000);
+    // 3-second hard fallback — always reveal media even if events never fire
+    const fallback = setTimeout(mediaReady, 3000);
     const done = () => { clearTimeout(fallback); mediaReady(); };
 
     if (isImage) {
         const img = document.getElementById('artImg');
         if (img) {
-            // Already cached — done immediately
-            if (img.complete && img.naturalWidth) { done(); }
+            // img.complete is true for both cached AND already-errored images —
+            // check it alone (not img.naturalWidth) so 404s don't get stuck
+            if (img.complete) { done(); }
             else {
                 img.addEventListener('load',  done);
                 img.addEventListener('error', done);
             }
-        }
+        } else { done(); }
     } else {
-        // loadedmetadata fires as soon as duration/dimensions are known (~instant)
         const video = document.getElementById('artVideo');
         if (video) {
+            // loadedmetadata fires as soon as duration/dimensions are known (~1-2 s)
             video.addEventListener('loadedmetadata', done);
             video.addEventListener('error', done);
-        }
+        } else { done(); }
     }
 } else {
-    mediaReady(); // no media file
+    mediaReady(); // no media file attached to this submission
 }
 
 // ── Fullscreen lightbox ───────────────────────────────────────────────────────
