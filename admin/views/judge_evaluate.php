@@ -56,13 +56,12 @@
         .score-slider-wrap.disabled input[type="number"] { pointer-events:none; background:#f8f9fa; }
         textarea:disabled { background:#f8f9fa; color:#6c757d; }
 
-        /* Media loader */
-        .media-loader { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:280px; background:#1a1a2e; gap:14px; padding:30px; }
-        .spinner { width:48px; height:48px; border:4px solid rgba(255,255,255,.15); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
+        /* Media loader — absolute overlay so artwork renders underneath immediately */
+        .media-loader { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(26,26,46,.9); gap:14px; padding:30px; border-radius:12px 12px 0 0; transition:opacity .5s ease; }
+        .media-loader.done { opacity:0; pointer-events:none; }
+        .spinner { width:44px; height:44px; border:4px solid rgba(255,255,255,.15); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
-        .load-text { color:rgba(255,255,255,.6); font-size:13px; }
-        .load-bar-wrap { width:160px; height:4px; background:rgba(255,255,255,.1); border-radius:2px; overflow:hidden; }
-        .load-bar { height:100%; width:0; background:var(--primary); border-radius:2px; transition:width .3s; }
+        .load-text { color:rgba(255,255,255,.7); font-size:13px; }
 
         /* Fullscreen button on media */
         .artwork-media { position:relative; }
@@ -230,14 +229,13 @@
             <!-- Right: anonymous artwork -->
             <div class="artwork-panel">
 
-                <!-- Loading spinner -->
+                <!-- Loading spinner (absolute overlay — artwork renders beneath it) -->
                 <div class="media-loader" id="mediaLoader">
                     <div class="spinner"></div>
                     <div class="load-text">Loading artwork…</div>
-                    <div class="load-bar-wrap"><div class="load-bar" id="loadBar"></div></div>
                 </div>
 
-                <div class="artwork-media" id="artworkMedia" style="display:none;">
+                <div class="artwork-media" id="artworkMedia">
                     <?php if ($webPath && $isImage): ?>
                         <img src="<?php echo htmlspecialchars($webPath); ?>"
                              alt="Artwork"
@@ -251,8 +249,7 @@
                         <video src="<?php echo htmlspecialchars($webPath); ?>"
                                controls
                                preload="metadata"
-                               id="artVideo"
-                               onloadedmetadata="mediaReady()"></video>
+                               id="artVideo"></video>
                         <button class="fs-btn" onclick="openFullscreen('video')" title="View fullscreen">
                             <i class="fas fa-expand"></i> Fullscreen
                         </button>
@@ -334,48 +331,43 @@ function confirmSubmit() {
 // Init running total on page load
 updateTotal();
 
-// ── Media loading with progress bar ──────────────────────────────────────────
+// ── Media loading ─────────────────────────────────────────────────────────────
 const isImage = <?php echo $isImage ? 'true' : 'false'; ?>;
 const webPath = <?php echo $webPath ? json_encode($webPath) : 'null'; ?>;
 
 function mediaReady() {
-    document.getElementById('mediaLoader').style.display  = 'none';
-    document.getElementById('artworkMedia').style.display = 'flex';
-}
-
-function simulateProgress(onDone) {
-    const bar = document.getElementById('loadBar');
-    let pct = 0;
-    const iv = setInterval(() => {
-        pct = Math.min(pct + Math.random() * 18, 90);
-        bar.style.width = pct + '%';
-    }, 120);
-    return { stop() { clearInterval(iv); bar.style.width = '100%'; setTimeout(onDone, 200); } };
+    const loader = document.getElementById('mediaLoader');
+    if (!loader || loader.classList.contains('done')) return;
+    loader.classList.add('done');
+    // Remove from DOM after fade so it doesn't intercept clicks
+    setTimeout(() => { loader.style.display = 'none'; }, 600);
 }
 
 if (webPath) {
+    // Hard timeout — always reveal media after 8 s even if events never fire
+    const fallback = setTimeout(mediaReady, 8000);
+    const done = () => { clearTimeout(fallback); mediaReady(); };
+
     if (isImage) {
-        const progress = simulateProgress(mediaReady);
         const img = document.getElementById('artImg');
         if (img) {
-            if (img.complete && img.naturalWidth) {
-                progress.stop();
-            } else {
-                img.addEventListener('load',  () => progress.stop());
-                img.addEventListener('error', () => { progress.stop(); });
+            // Already cached — done immediately
+            if (img.complete && img.naturalWidth) { done(); }
+            else {
+                img.addEventListener('load',  done);
+                img.addEventListener('error', done);
             }
         }
     } else {
-        // Video: show real progress via XMLHttpRequest range if possible, else simulate
+        // loadedmetadata fires as soon as duration/dimensions are known (~instant)
         const video = document.getElementById('artVideo');
         if (video) {
-            const progress = simulateProgress(mediaReady);
-            video.addEventListener('canplay', () => progress.stop());
-            video.addEventListener('error',   () => progress.stop());
+            video.addEventListener('loadedmetadata', done);
+            video.addEventListener('error', done);
         }
     }
 } else {
-    mediaReady(); // no media — just show the panel
+    mediaReady(); // no media file
 }
 
 // ── Fullscreen lightbox ───────────────────────────────────────────────────────
