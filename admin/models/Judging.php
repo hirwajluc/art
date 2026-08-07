@@ -287,7 +287,7 @@ class Judging {
      */
     public function getSubmissionsForJudge(int $judgeId, string $search = '', string $category = '', string $evalStatus = ''): array {
         try {
-            $where  = ['1=1'];
+            $where  = ["s.status = 'approved'"];
             $params = [':judge_id' => $judgeId];
 
             if (!empty($search)) {
@@ -351,7 +351,7 @@ class Judging {
                         NULL AS total_score,
                         NULL AS submitted_at
                     FROM submissions s
-                    WHERE $whereStr
+                    WHERE $whereStr AND s.status = 'approved'
                     ORDER BY s.submissionDate ASC
                 ";
                 $stmt2 = $this->db->prepare($sql2);
@@ -374,7 +374,7 @@ class Judging {
                 SELECT id, userCode AS competition_code, artworkName AS artwork_name,
                        category, fileType, filePath, fileName, description, submissionDate,
                        jury_feedback AS admin_note
-                FROM submissions WHERE id = ?
+                FROM submissions WHERE id = ? AND status = 'approved'
             ");
             $stmt->execute([$submissionId]);
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
@@ -673,7 +673,7 @@ class Judging {
     public function getJudgeStats(int $judgeId): array {
         $total = 0;
         try {
-            $total = (int)$this->db->query("SELECT COUNT(*) FROM submissions")->fetchColumn();
+            $total = (int)$this->db->query("SELECT COUNT(*) FROM submissions WHERE status = 'approved'")->fetchColumn();
         } catch (PDOException $e) {}
 
         $submitted = 0;

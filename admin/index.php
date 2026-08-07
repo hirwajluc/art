@@ -504,26 +504,64 @@ switch ($page) {
     // -----------------------------------------------------------------------
     case 'winners':
         require_once __DIR__ . '/config/database.php';
+        require_once __DIR__ . '/models/Judging.php';
         try {
             $database = new Database();
-            $db = $database->getConnection();
+            $db       = $database->getConnection();
+            $judging  = new Judging();
 
-            // Fetch approved (top-scored) submissions
-            $s = $db->query("
-                SELECT s.*, r.fullName AS participantName, r.nationality, r.birthDate
-                FROM submissions s
-                LEFT JOIN registrations r ON r.userCode = s.userCode
-                WHERE s.status = 'approved'
-                ORDER BY s.score DESC, s.submissionDate ASC
-                LIMIT 20
-            ");
-            $approvedSubmissions = $s ? $s->fetchAll(PDO::FETCH_ASSOC) : [];
+            $categories = [
+                'photography_paint' => 'Photography / Paint',
+                'short_video'       => 'Short Video',
+            ];
+
+            $topByCategory = [];
+            foreach ($categories as $catKey => $catLabel) {
+                try {
+                    $stmt = $db->prepare("
+                        SELECT
+                            s.id,
+                            s.userCode     AS competition_code,
+                            s.artworkName  AS artwork_name,
+                            s.category,
+                            s.filePath,
+                            s.fileType,
+                            s.fileName,
+                            SUM(CASE WHEN je.status = 'submitted' THEN 1 ELSE 0 END)       AS judges_submitted,
+                            ROUND(AVG(CASE WHEN je.status = 'submitted' THEN je.total_score END), 1) AS avg_score
+                        FROM submissions s
+                        LEFT JOIN jury_evaluations je ON je.submission_id = s.id
+                        WHERE s.status = 'approved' AND s.category = ?
+                        GROUP BY s.id
+                        ORDER BY avg_score IS NULL ASC, avg_score DESC, s.userCode ASC
+                        LIMIT 8
+                    ");
+                    $stmt->execute([$catKey]);
+                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                } catch (PDOException $e) {
+                    // jury_evaluations not yet created — list approved submissions unranked
+                    $stmt = $db->prepare("
+                        SELECT id, userCode AS competition_code, artworkName AS artwork_name,
+                               category, filePath, fileType, fileName,
+                               0 AS judges_submitted, NULL AS avg_score
+                        FROM submissions
+                        WHERE status = 'approved' AND category = ?
+                        ORDER BY userCode ASC LIMIT 8
+                    ");
+                    $stmt->execute([$catKey]);
+                    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                }
+                $topByCategory[$catKey] = ['label' => $catLabel, 'rows' => $rows];
+            }
+
+            $totalMaxScore = $judging->getTotalMaxScore();
 
             $currentUser = [
                 'id'        => $_SESSION['user_id'],
                 'full_name' => $_SESSION['user_full_name'] ?? 'Admin User',
                 'email'     => $_SESSION['user_email']     ?? 'admin@greaterproject.eu',
                 'role'      => $_SESSION['user_role']      ?? 'admin',
+                'username'  => $_SESSION['user_username']  ?? 'admin',
             ];
             $currentPage = 'winners';
             include __DIR__ . '/views/winners.php';

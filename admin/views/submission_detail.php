@@ -224,19 +224,47 @@
                                 <p style="color:var(--gray); font-style:italic;">No admin note added yet. Notes are visible to judges but do not affect scores.</p>
                             <?php endif; ?>
 
-                            <!-- Status classification (for Winners page only, not scoring) -->
-                            <div style="margin-top:18px; padding-top:16px; border-top:1px solid #f0f0f0; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                                <span style="font-size:13px; font-weight:600; color:var(--dark);">Classification:</span>
-                                <form method="POST" action="?page=update_submission" style="display:flex; align-items:center; gap:8px;">
-                                    <input type="hidden" name="id"     value="<?php echo $submission['id']; ?>">
-                                    <input type="hidden" name="action" value="status">
-                                    <select name="status" class="form-select" style="font-size:13px; padding:5px 10px; border-radius:6px;">
-                                        <option value="pending"  <?php echo $submission['status']==='pending'  ? 'selected':''; ?>>Pending</option>
-                                        <option value="approved" <?php echo $submission['status']==='approved' ? 'selected':''; ?>>Approved (shown on Winners page)</option>
-                                        <option value="rejected" <?php echo $submission['status']==='rejected' ? 'selected':''; ?>>Rejected</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-secondary" style="font-size:12px; padding:5px 12px;">Save</button>
-                                </form>
+                            <!-- Admin Review -->
+                            <div style="margin-top:18px; padding-top:16px; border-top:1px solid #f0f0f0;">
+                                <div style="font-size:13px; font-weight:600; color:var(--dark); margin-bottom:10px;">Admin Review</div>
+                                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                    <?php
+                                    $stColors = ['pending'=>['#fef3c7','#92400e'],'approved'=>['#d1fae5','#065f46'],'rejected'=>['#fee2e2','#991b1b']];
+                                    $sc = $stColors[$submission['status']] ?? ['#f3f4f6','#374151'];
+                                    ?>
+                                    <span style="background:<?php echo $sc[0]; ?>; color:<?php echo $sc[1]; ?>; font-weight:700; font-size:12px; padding:5px 16px; border-radius:20px; text-transform:uppercase; letter-spacing:.5px;">
+                                        <?php echo ucfirst($submission['status']); ?>
+                                    </span>
+                                    <?php if ($submission['status'] !== 'approved'): ?>
+                                    <form method="POST" action="?page=update_submission" style="display:inline;">
+                                        <input type="hidden" name="id"     value="<?php echo $submission['id']; ?>">
+                                        <input type="hidden" name="action" value="status">
+                                        <input type="hidden" name="status" value="approved">
+                                        <button type="submit" class="btn" style="background:#10b981;color:#fff;font-size:13px;padding:6px 18px;">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
+                                    <?php if ($submission['status'] !== 'rejected'): ?>
+                                    <form method="POST" action="?page=update_submission" style="display:inline;">
+                                        <input type="hidden" name="id"     value="<?php echo $submission['id']; ?>">
+                                        <input type="hidden" name="action" value="status">
+                                        <input type="hidden" name="status" value="rejected">
+                                        <button type="submit" class="btn" style="background:#ef4444;color:#fff;font-size:13px;padding:6px 18px;">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
+                                </div>
+                                <div style="font-size:11px; color:#9ca3af; margin-top:8px;">
+                                    <?php if ($submission['status']==='approved'): ?>
+                                        <i class="fas fa-check-circle" style="color:#10b981;"></i> Approved — visible to judges for evaluation
+                                    <?php elseif ($submission['status']==='rejected'): ?>
+                                        <i class="fas fa-times-circle" style="color:#ef4444;"></i> Rejected — hidden from judges and disqualified
+                                    <?php else: ?>
+                                        <i class="fas fa-clock" style="color:#f59e0b;"></i> Pending review — not yet visible to judges
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>

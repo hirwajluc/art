@@ -289,37 +289,37 @@
                 <h3 class="modal-title">Review Submission</h3>
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
-            <form id="reviewForm" method="POST" action="?page=update_submission">
-                <input type="hidden" id="submissionId" name="id">
-                <div class="form-group">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" name="status" required>
-                        <option value="">Select Status</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="pending">Pending</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Score (0–100)</label>
-                    <input type="number" class="form-input" name="score" min="0" max="100" step="0.1" placeholder="Enter score">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Feedback</label>
-                    <textarea class="form-textarea" name="feedback" placeholder="Enter your feedback for the participant..."></textarea>
-                </div>
-                <div style="display:flex;gap:10px;justify-content:flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Submit Review</button>
-                </div>
-            </form>
+            <input type="hidden" name="action" value="status">
+            <p style="color:var(--gray);font-size:14px;margin-bottom:20px;">
+                Approved submissions are visible to judges. Rejected submissions are disqualified and hidden from judges.
+            </p>
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <form method="POST" action="?page=update_submission">
+                    <input type="hidden" id="submissionIdApprove" name="id">
+                    <input type="hidden" name="action" value="status">
+                    <input type="hidden" name="status" value="approved">
+                    <button type="submit" class="btn" style="background:#10b981;color:#fff;padding:10px 28px;font-size:15px;">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                </form>
+                <form method="POST" action="?page=update_submission">
+                    <input type="hidden" id="submissionIdReject" name="id">
+                    <input type="hidden" name="action" value="status">
+                    <input type="hidden" name="status" value="rejected">
+                    <button type="submit" class="btn" style="background:#ef4444;color:#fff;padding:10px 28px;font-size:15px;">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </form>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            </div>
         </div>
     </div>
 
     <script>
         /* ── Review modal ── */
         function openReviewModal(submissionId) {
-            document.getElementById('submissionId').value = submissionId;
+            document.getElementById('submissionIdApprove').value = submissionId;
+            document.getElementById('submissionIdReject').value  = submissionId;
             document.getElementById('reviewModal').style.display = 'block';
         }
         function closeModal() {
