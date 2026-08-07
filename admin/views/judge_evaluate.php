@@ -335,36 +335,33 @@ const isImage = <?php echo $isImage ? 'true' : 'false'; ?>;
 const webPath = <?php echo $webPath ? json_encode($webPath) : 'null'; ?>;
 
 function mediaReady() {
-    document.getElementById('mediaLoader').style.display  = 'none';
-    document.getElementById('artworkMedia').style.display = 'flex';
+    const loader = document.getElementById('mediaLoader');
+    const media  = document.getElementById('artworkMedia');
+    if (loader) loader.style.display = 'none';
+    if (media)  media.style.display  = 'flex';
 }
 
-if (webPath) {
-    // 3-second hard fallback — always reveal media even if events never fire
-    const fallback = setTimeout(mediaReady, 3000);
-    const done = () => { clearTimeout(fallback); mediaReady(); };
+// ── Unconditional 1.5 s timer — spinner ALWAYS clears regardless of events ───
+setTimeout(mediaReady, 1500);
 
+// Also clear as soon as the media is actually ready (whichever comes first)
+if (webPath) {
     if (isImage) {
         const img = document.getElementById('artImg');
         if (img) {
-            // img.complete is true for both cached AND already-errored images —
-            // check it alone (not img.naturalWidth) so 404s don't get stuck
-            if (img.complete) { done(); }
+            if (img.complete) { mediaReady(); }
             else {
-                img.addEventListener('load',  done);
-                img.addEventListener('error', done);
+                img.addEventListener('load',  mediaReady);
+                img.addEventListener('error', mediaReady);
             }
-        } else { done(); }
+        }
     } else {
         const video = document.getElementById('artVideo');
         if (video) {
-            // loadedmetadata fires as soon as duration/dimensions are known (~1-2 s)
-            video.addEventListener('loadedmetadata', done);
-            video.addEventListener('error', done);
-        } else { done(); }
+            video.addEventListener('loadedmetadata', mediaReady);
+            video.addEventListener('error',          mediaReady);
+        }
     }
-} else {
-    mediaReady(); // no media file attached to this submission
 }
 
 // ── Fullscreen lightbox ───────────────────────────────────────────────────────
