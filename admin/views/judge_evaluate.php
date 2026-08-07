@@ -56,11 +56,7 @@
         .score-slider-wrap.disabled input[type="number"] { pointer-events:none; background:#f8f9fa; }
         textarea:disabled { background:#f8f9fa; color:#6c757d; }
 
-        /* Media loader */
-        .media-loader { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:280px; background:#1a1a2e; gap:14px; padding:30px; }
-        .spinner { width:44px; height:44px; border:4px solid rgba(255,255,255,.15); border-top-color:var(--primary); border-radius:50%; animation:spin .8s linear infinite; }
-        @keyframes spin { to { transform:rotate(360deg); } }
-        .load-text { color:rgba(255,255,255,.7); font-size:13px; }
+
 
         /* Fullscreen button on media */
         .artwork-media { position:relative; }
@@ -228,13 +224,7 @@
             <!-- Right: anonymous artwork -->
             <div class="artwork-panel">
 
-                <!-- Loading spinner -->
-                <div class="media-loader" id="mediaLoader">
-                    <div class="spinner"></div>
-                    <div class="load-text">Loading artwork…</div>
-                </div>
-
-                <div class="artwork-media" id="artworkMedia" style="display:none;">
+                <div class="artwork-media" id="artworkMedia">
                     <?php if ($webPath && $isImage): ?>
                         <img src="<?php echo htmlspecialchars($webPath); ?>"
                              alt="Artwork"
@@ -334,35 +324,6 @@ updateTotal();
 const isImage = <?php echo $isImage ? 'true' : 'false'; ?>;
 const webPath = <?php echo $webPath ? json_encode($webPath) : 'null'; ?>;
 
-function mediaReady() {
-    const loader = document.getElementById('mediaLoader');
-    const media  = document.getElementById('artworkMedia');
-    if (loader) loader.style.display = 'none';
-    if (media)  media.style.display  = 'flex';
-}
-
-// ── Unconditional 1.5 s timer — spinner ALWAYS clears regardless of events ───
-setTimeout(mediaReady, 1500);
-
-// Also clear as soon as the media is actually ready (whichever comes first)
-if (webPath) {
-    if (isImage) {
-        const img = document.getElementById('artImg');
-        if (img) {
-            if (img.complete) { mediaReady(); }
-            else {
-                img.addEventListener('load',  mediaReady);
-                img.addEventListener('error', mediaReady);
-            }
-        }
-    } else {
-        const video = document.getElementById('artVideo');
-        if (video) {
-            video.addEventListener('loadedmetadata', mediaReady);
-            video.addEventListener('error',          mediaReady);
-        }
-    }
-}
 
 // ── Fullscreen lightbox ───────────────────────────────────────────────────────
 function openFullscreen(type) {
