@@ -147,7 +147,7 @@
                     <!-- Disable / Enable only for judges who accepted -->
                     <a href="?page=toggle_judge&id=<?php echo $judge['id']; ?>"
                        class="btn <?php echo $judge['status'] === 'active' ? 'btn-secondary' : 'btn-success'; ?>"
-                       onclick="return confirm('<?php echo $judge['status'] === 'active' ? 'Disable' : 'Enable'; ?> this judge?')">
+                       onclick="swalConfirm(event, this.href, '<?php echo $judge['status'] === 'active' ? 'Disable' : 'Enable'; ?> Judge', '<?php echo $judge['status'] === 'active' ? 'Disable' : 'Enable'; ?> <?php echo htmlspecialchars(addslashes($judge['full_name'])); ?>?', {confirmText:'Yes'})">
                         <i class="fas fa-<?php echo $judge['status'] === 'active' ? 'ban' : 'check'; ?>"></i>
                         <?php echo $judge['status'] === 'active' ? 'Disable' : 'Enable'; ?>
                     </a>
@@ -156,7 +156,7 @@
                 <!-- Remove: always allowed when no submitted evals -->
                 <?php if ((int)$judge['submitted_count'] === 0): ?>
                 <a href="?page=delete_judge&id=<?php echo $judge['id']; ?>" class="btn btn-danger"
-                   onclick="return confirm('Permanently remove <?php echo htmlspecialchars(addslashes($judge['full_name'])); ?>?\n\nThis cannot be undone.')">
+                   onclick="swalConfirm(event, this.href, 'Remove Judge', 'Permanently remove <?php echo htmlspecialchars(addslashes($judge['full_name'])); ?>? This cannot be undone.', {danger:true, confirmText:'Remove'})">
                     <i class="fas fa-trash"></i> <?php echo $hasPendingInvite ? 'Revoke & Remove' : 'Remove'; ?>
                 </a>
                 <?php endif; ?>

@@ -107,7 +107,7 @@
                         <strong style="font-size:18px; color:var(--primary);"><?php echo $eval['total_score']; ?> pts</strong>
                         <a href="?page=reopen_evaluation&id=<?php echo $eval['id']; ?>&submission=<?php echo $detailId; ?>"
                            class="btn btn-secondary" style="font-size:12px; padding:4px 10px;"
-                           onclick="return confirm('Reopen this evaluation for editing?')">
+                           onclick="swalConfirm(event, this.href, 'Reopen Evaluation', 'Allow the judge to edit this submitted evaluation?', {confirmText:'Reopen'})">
                             <i class="fas fa-lock-open"></i> Reopen
                         </a>
                         <?php else: ?>

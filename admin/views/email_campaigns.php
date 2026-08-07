@@ -366,16 +366,16 @@ function confirmSend(type) {
     const subject   = document.getElementById(subjectId).value.trim();
     const body      = document.getElementById(bodyId).value.trim();
 
-    if (!subject) { alert('Please enter an email subject.'); document.getElementById(subjectId).focus(); return; }
-    if (!body)    { alert('Please write the email body.'); document.getElementById(bodyId).focus(); return; }
-    if (body.length < 20) { alert('Email body is too short (minimum 20 characters).'); return; }
+    if (!subject) { swalAlert('Missing Subject', 'Please enter an email subject.', 'warning'); document.getElementById(subjectId).focus(); return; }
+    if (!body)    { swalAlert('Missing Body', 'Please write the email body.', 'warning'); document.getElementById(bodyId).focus(); return; }
+    if (body.length < 20) { swalAlert('Body Too Short', 'Email body must be at least 20 characters.', 'warning'); return; }
 
     const count = type === 'no_submission'
         ? <?php echo (int)$statsNotSubmitted; ?>
         : <?php echo (int)$statsSubmitted; ?>;
 
     if (count === 0) {
-        alert('There are no recipients for this campaign right now.');
+        swalAlert('No Recipients', 'There are no recipients for this campaign right now.', 'info');
         return;
     }
 

@@ -312,9 +312,17 @@ function submitForm(action) {
 }
 
 function confirmSubmit() {
-    if (confirm('Final submit cannot be edited after confirmation.\n\nAre you sure you want to submit your evaluation?')) {
-        submitForm('submit');
-    }
+    Swal.fire({
+        title: 'Submit Evaluation',
+        text: 'Once submitted, your evaluation cannot be edited. Are you sure?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, submit',
+        cancelButtonText: 'Not yet',
+        reverseButtons: true,
+    }).then(r => { if (r.isConfirmed) submitForm('submit'); });
 }
 
 // Init running total on page load

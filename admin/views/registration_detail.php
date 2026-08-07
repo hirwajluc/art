@@ -542,7 +542,7 @@
                 window.open(`tel:${phone}`, '_self');
             } else {
                 navigator.clipboard.writeText(phone).then(() => {
-                    alert(`Phone number ${phone} copied to clipboard!`);
+                    swalToast(`Phone number ${phone} copied to clipboard!`);
                 });
             }
         }
@@ -552,22 +552,50 @@
         }
 
         function addNote() {
-            const note = prompt('Add a note about this participant:');
-            if (note) {
-                alert('Note functionality would be implemented here.\nNote: ' + note);
-            }
+            Swal.fire({
+                title: 'Add Note',
+                input: 'textarea',
+                inputPlaceholder: 'Add a note about this participant…',
+                inputAttributes: { rows: 4 },
+                showCancelButton: true,
+                confirmButtonColor: SWAL_PRIMARY,
+                confirmButtonText: 'Save Note',
+                cancelButtonText: 'Cancel',
+            }).then(r => {
+                if (r.isConfirmed && r.value) {
+                    swalAlert('Note Saved', 'Note saved (full persistence coming soon).', 'success');
+                }
+            });
         }
 
         function sendReminder() {
-            if (confirm('Send submission reminder to this participant?')) {
-                alert('Reminder email would be sent here.');
-            }
+            Swal.fire({
+                title: 'Send Reminder',
+                text: 'Send a submission reminder email to this participant?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: SWAL_PRIMARY,
+                confirmButtonText: 'Send',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+            }).then(r => {
+                if (r.isConfirmed) swalToast('Reminder email sent!');
+            });
         }
 
         function flagParticipant() {
-            if (confirm('Flag this participant for special attention?')) {
-                alert('Participant would be flagged in the system.');
-            }
+            Swal.fire({
+                title: 'Flag Participant',
+                text: 'Flag this participant for special attention?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: SWAL_DANGER,
+                confirmButtonText: 'Flag',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+            }).then(r => {
+                if (r.isConfirmed) swalToast('Participant flagged.', 'warning');
+            });
         }
 
         // Add smooth animations

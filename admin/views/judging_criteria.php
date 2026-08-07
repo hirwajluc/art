@@ -132,7 +132,7 @@ function addRow() {
 
 function removeRow(btn) {
     const rows = document.querySelectorAll('.criterion-row');
-    if (rows.length <= 1) { alert('At least one scoring criterion is required.'); return; }
+    if (rows.length <= 1) { swalAlert('Cannot Remove', 'At least one scoring criterion is required.', 'warning'); return; }
     btn.closest('.criterion-row').remove();
     updateTotal();
 }

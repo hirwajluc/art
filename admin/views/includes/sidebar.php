@@ -92,7 +92,7 @@ $isAdmin = ($currentUser['role'] === 'admin');
         <div class="nav-divider"></div>
         <ul class="nav-menu">
             <li class="nav-item">
-                <a href="?page=logout" class="nav-link logout-link" onclick="return confirm('Are you sure you want to logout?')">
+                <a href="?page=logout" class="nav-link logout-link" onclick="swalConfirm(event, this.href, 'Logout', 'Are you sure you want to log out?', {confirmText:'Yes, logout', cancelText:'Stay'})">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </li>

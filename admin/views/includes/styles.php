@@ -3,7 +3,9 @@
 ?>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.6/sweetalert2.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.6/sweetalert2.all.min.js"></script>
 <style>
 :root {
     --primary: #1E90FF;
@@ -489,3 +491,38 @@ body {
     }
 }
 </style>
+<script>
+/* Shared SweetAlert2 helpers — available on every admin/judge page */
+const SWAL_PRIMARY = '#1E90FF';
+const SWAL_DANGER  = '#ef4444';
+
+// Drop-in replacement for onclick="return confirm(...)".
+// Usage: onclick="swalConfirm(event, this.href, 'Title', 'Body text')"
+function swalConfirm(event, href, title, text, opts = {}) {
+    event.preventDefault();
+    Swal.fire(Object.assign({
+        title,
+        text,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: opts.danger ? SWAL_DANGER : SWAL_PRIMARY,
+        cancelButtonColor:  '#6b7280',
+        confirmButtonText:  opts.confirmText  || 'Yes',
+        cancelButtonText:   opts.cancelText   || 'Cancel',
+        reverseButtons: true,
+    }, opts.extra || {})).then(r => { if (r.isConfirmed) window.location.href = href; });
+}
+
+// Simple info/warning/error popup
+function swalAlert(title, text, icon = 'info') {
+    return Swal.fire({ title, text, icon, confirmButtonColor: SWAL_PRIMARY });
+}
+
+// Toast notification (top-right, auto-close)
+function swalToast(title, icon = 'success') {
+    Swal.fire({
+        toast: true, position: 'top-end', icon, title,
+        showConfirmButton: false, timer: 3000, timerProgressBar: true,
+    });
+}
+</script>
